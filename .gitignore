@@ -1,5 +1,6 @@
 *.log
 *.pid
+coverage
 uuid.state
 .DS_Store
 database.yml
