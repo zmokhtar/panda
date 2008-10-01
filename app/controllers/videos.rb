@@ -2,7 +2,7 @@ class Videos < Application
   provides :html, :xml, :yaml # Allow before filters to accept all formats, which are then futher refined in each action
   before :require_login, :only => [:index, :show, :destroy, :new, :create, :add_to_queue]
   before :set_video, :only => [:show, :destroy, :add_to_queue]
-  before :set_video_with_nice_errors, :only => [:form, :done, :state]
+  before :set_video_with_nice_errors, :only => [:form, :done, :state, :choose_thumbnail]
 
   def index
     provides :html, :xml, :yaml
@@ -103,6 +103,10 @@ class Videos < Application
       @video.process
       @video.status = "original"
       @video.save
+      
+      # When in the /upload action, we normally rm the tmp file uploaded by the user. 
+      # But if we're going to let them choose from a selection of thumbnails we must keep the file around to generate thumbnails for it first.
+      FileUtils.rm self.tmp_filepath if Panda::Config[:choose_thumbnail] == false
     rescue Amazon::SDB::RecordNotFoundError # No empty video object exists
       self.status = 404
       render_error($!.to_s.gsub(/Amazon::SDB::/,""))
@@ -120,13 +124,14 @@ class Videos < Application
       when :html  
         # Special internal Panda case: textarea hack to get around the fact that the form is submitted with a hidden iframe and thus the response is rendered in the iframe
         if params[:iframe] == "true"
-          "<textarea>" + {:location => @video.upload_redirect_url}.to_json + "</textarea>"
+          "<textarea>" + {:location => @video.redirect_after_upload}.to_json + "</textarea>"
         else
-          redirect @video.upload_redirect_url
+          redirect @video.redirect_after_upload
         end
       end
     end
   end
+  
   
   # NOTE: Default done page people see after successfully uploading a video. Edit init.rb and set upload_redirect_url to be somewhere else.
   def done
@@ -143,6 +148,21 @@ class Videos < Application
   def add_to_queue
     @video.add_to_queue
     redirect "/videos/#{@video.key}"
+  end
+  
+  def choose_thumbnail
+    provides :html
+    if params[:percentage]
+      @video.thumbnail_position = params[:percentage]
+      @video.save
+      FileUtils.rm @video.tmp_filepath
+      
+      @video.cleanup_thumbnail_selection
+      redirect @video.upload_redirect_url
+    else
+      @percentages = @video.generate_thumbnail_selection
+      render :layout => :uploader
+    end
   end
   
 private

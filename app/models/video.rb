@@ -1,6 +1,6 @@
 class Video < SimpleDB::Base
   set_domain Panda::Config[:sdb_videos_domain]
-  properties :filename, :original_filename, :parent, :status, :duration, :container, :width, :height, :video_codec, :video_bitrate, :fps, :audio_codec, :audio_bitrate, :audio_sample_rate, :profile, :profile_title, :player, :queued_at, :started_encoding_at, :encoding_time, :encoded_at, :last_notification_at, :notification, :updated_at, :created_at
+  properties :filename, :original_filename, :parent, :status, :duration, :container, :width, :height, :video_codec, :video_bitrate, :fps, :audio_codec, :audio_bitrate, :audio_sample_rate, :profile, :profile_title, :player, :queued_at, :started_encoding_at, :encoding_time, :encoded_at, :last_notification_at, :notification, :updated_at, :created_at, :thumbnail_position
   
   # TODO: state machine for status
   # An original video can either be 'empty' if it hasn't had the video file uploaded, or 'original' if it has
@@ -73,7 +73,7 @@ class Video < SimpleDB::Base
     end
     self.destroy!
   end
-  
+
   # Location to store video file fetched from S3 for encoding
   def tmp_filepath
     Panda::Config[:tmp_video_dir] / self.filename
@@ -82,6 +82,10 @@ class Video < SimpleDB::Base
   # Has the actual video file been uploaded for encoding?
   def empty?
     self.status == 'empty'
+  end
+  
+  def redirect_after_upload
+    Panda::Config[:choose_thumbnail] ? "/videos/#{self.key}/choose_thumbnail" : self.upload_redirect_url
   end
   
   def upload_redirect_url
@@ -212,8 +216,9 @@ class Video < SimpleDB::Base
     screenshot_tmp_filepath = self.tmp_filepath + ".jpg"
     thumbnail_tmp_filepath = self.tmp_filepath + "_thumb.jpg"
     
+    # MAKE THIS USE capture_and_resize_thumbnail
     t = RVideo::Inspector.new(:file => self.tmp_filepath)
-    t.capture_frame('50%', screenshot_tmp_filepath)
+    t.capture_frame("#{self.parent_video.thumbnail_position || "50"}%", screenshot_tmp_filepath)
     
     constrain_to_height = Panda::Config[:thumbnail_height_constrain].to_f
     width = (self.width.to_f/(self.height.to_f/constrain_to_height)).to_i
@@ -232,6 +237,44 @@ class Video < SimpleDB::Base
       true
     end
   end
+  
+  def capture_and_resize_thumbnail(percentage)
+    tmp_img = self.tmp_filepath + "_#{UUID.new}.jpg"
+    # tmp_img = Merb.root + 'public/images/tmp/' + "#{UUID.new}.jpg"
+
+    t = RVideo::Inspector.new(:file => self.tmp_filepath)
+    t.capture_frame("#{percentage}%", tmp_img)
+    
+    constrain_to_height = 128
+    width = (self.width.to_f/(self.height.to_f/constrain_to_height)).to_i
+    height = constrain_to_height.to_i
+    
+    GDResize.new.resize(tmp_img, self.tmp_thumbnail_for_selection_filepath(percentage), [width,height])
+    FileUtils.rm tmp_img
+  end
+  
+  def tmp_thumbnail_for_selection_filepath(percentage)
+    "public/images/tmp/#{self.tmp_thumbnail_for_selection_filename(percentage)}"
+  end
+  
+  def tmp_thumbnail_for_selection_filename(percentage)
+    "#{self.filename}_#{percentage}.jpg"
+  end
+  
+  def generate_thumbnail_selection
+    raise "choose_thumbnail config option must be a number" unless Panda::Config[:choose_thumbnail]
+    divider = 100.0 / (Panda::Config[:choose_thumbnail] + 2).to_f
+    percentages = (1..Panda::Config[:choose_thumbnail]).map {|i| i * divider }
+    percentages.each do |percentage|
+      capture_and_resize_thumbnail(percentage)
+    end
+    return percentages
+  end
+  
+  def cleanup_thumbnail_selection
+    FileUtils.rm  Dir.glob("public/images/tmp/#{self.filename}*.jpg")
+  end
+    
   
   # Uploads
   # =======
