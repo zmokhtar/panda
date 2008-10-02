@@ -94,9 +94,7 @@ describe Videos, "upload action" do
   end
   
   it "should redirect to choose_thumbnail page without adding to queue if choose_thumbnail option"
-  
-  it "should "
-  
+    
   # Video::NotValid / 404
   
   it "should return 404 when processing fails with Video::NotValid" do 
