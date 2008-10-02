@@ -158,10 +158,28 @@ class Videos < Application
       FileUtils.rm @video.tmp_filepath
       
       @video.cleanup_thumbnail_selection
-      redirect @video.upload_redirect_url
+      
+      if params[:iframe] == "true"
+        # If iframe is true, we've come from the upload form and the thumbnail will be generated when the video is encded
+        redirect @video.upload_redirect_url
+      else
+        # Here the video is already encoded and we're changing its thumbnail
+        @video.successfull_encodings.each do | video |
+          video.fetch_from_s3
+          video.capture_thumbnail_and_upload_to_s3
+          FileUtils.rm video.tmp_filepath
+        end
+        redirect "/videos/#{@video.key}"
+      end
     else
+      @video.fetch_from_s3 unless params[:iframe] == "true"
       @percentages = @video.generate_thumbnail_selection
-      render :layout => :uploader
+      
+      if params[:iframe] == "true"
+        render :layout => :uploader
+      else
+        render
+      end
     end
   end
   

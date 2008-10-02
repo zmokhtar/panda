@@ -58,6 +58,10 @@ class Video < SimpleDB::Base
     self.class.query("['parent' = '#{self.key}']")
   end
   
+  def successfull_encodings
+    self.class.query("['parent' = '#{self.key}'] intersection ['status' = 'success']")
+  end
+  
   def find_encoding_for_profile(p)
     self.class.query("['parent' = '#{self.key}'] intersection ['profile' = '#{p.key}']")
   end
@@ -85,7 +89,7 @@ class Video < SimpleDB::Base
   end
   
   def redirect_after_upload
-    Panda::Config[:choose_thumbnail] ? "/videos/#{self.key}/choose_thumbnail" : self.upload_redirect_url
+    Panda::Config[:choose_thumbnail] ? "/videos/#{self.key}/choose_thumbnail?iframe=true" : self.upload_redirect_url
   end
   
   def upload_redirect_url
