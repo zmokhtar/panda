@@ -78,22 +78,30 @@ describe Videos, "upload action" do
     # Next @video.process is called, this is where the interesting stuff happens, errors raised etc...
   end
   
-  it "should process valid video" do
+  it "should process valid video and add to queue if choose_thumbnail option is not set" do
     setup_video
-    @video.should_receive(:process).and_return(true)
+    Panda::Config[:choose_thumbnail] = false
+    @video.should_receive(:valid?).and_return(true)
+    @video.should_receive(:read_metadata).and_return(true)
+    @video.should_receive(:upload_to_s3).and_return(true)
+    @video.should_receive(:add_to_queue).and_return(true)
     @video.should_receive(:status=).with("original")
-    @video.should_receive(:save)   
-     
+    @video.should_receive(:save)    
+    FileUtils.should_receive(:rm).and_return(true)
     @c = multipart_post(@video_upload_url, @video_upload_params) do |controller|
       controller.should_receive(:redirect).with("http://localhost:4000/videos/abc/done")
     end
   end
   
+  it "should redirect to choose_thumbnail page without adding to queue if choose_thumbnail option"
+  
+  it "should "
+  
   # Video::NotValid / 404
   
   it "should return 404 when processing fails with Video::NotValid" do 
     setup_video
-    @video.should_receive(:process).and_raise(Video::NotValid)
+    @video.should_receive(:valid?).and_raise(Video::NotValid)
     @c = multipart_post(@video_upload_url, @video_upload_params)
     @c.body.should match(/NotValid/)
     @c.status.should == 404
@@ -161,4 +169,16 @@ describe Videos, "upload action" do
   #   post("/videos/123/uploaded.yaml")
   #   status.should == 404
   # end
+end
+
+describe Videos, "choose thumbnail action" do
+  it "should have spec"
+end
+
+describe Videos, "save thumbnail action" do
+  it "should have spec"
+end
+
+describe Videos, "upload through iframe" do
+  it "should have spec"
 end

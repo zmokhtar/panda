@@ -185,21 +185,15 @@ describe Video do
     
     Store.should_receive(:set).with('abc.mov.jpg', '/tmp/abc.mov.jpg').and_return(true)
     Store.should_receive(:set).with('abc.mov_thumb.jpg', '/tmp/abc.mov_thumb.jpg').and_return(true)
-    
+
+    parent_video = mock (Video)
+    parent_video.should_receive(:thumbnail_position).and_return(false)
+    @video.should_receive(:parent_video).and_return(parent_video)
     @video.capture_thumbnail_and_upload_to_s3.should be_true
   end
   
   # Uploads
   # =======
-  
-  it "should process" do
-    @video.should_receive(:valid?)
-    @video.should_receive(:read_metadata)
-    @video.should_receive(:upload_to_s3)
-    @video.should_receive(:add_to_queue)
-    
-    @video.process
-  end
   
   it "valid? should raise NotValid if video is not empty" do
     @video.status = 'original'

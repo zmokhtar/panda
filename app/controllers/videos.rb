@@ -2,7 +2,7 @@ class Videos < Application
   provides :html, :xml, :yaml # Allow before filters to accept all formats, which are then futher refined in each action
   before :require_login, :only => [:index, :show, :destroy, :new, :create, :add_to_queue]
   before :set_video, :only => [:show, :destroy, :add_to_queue]
-  before :set_video_with_nice_errors, :only => [:form, :done, :state, :choose_thumbnail]
+  before :set_video_with_nice_errors, :only => [:form, :done, :state, :choose_thumbnail, :save_thumbnail]
 
   def index
     provides :html, :xml, :yaml
@@ -100,13 +100,21 @@ class Videos < Application
       @video.filename = @video.key + File.extname(params[:file][:filename])
       FileUtils.mv params[:file][:tempfile].path, @video.tmp_filepath
       @video.original_filename = params[:file][:filename].split("\\\\").last # Split out any directory path Windows adds in
-      @video.process
+      # @video.process
+      @video.valid?
+      @video.read_metadata
+      @video.upload_to_s3
+      
+      # Generate thumbnails before we save so the encoder doesn't get there first and delete our file!
+      if Panda::Config[:choose_thumbnail]
+        @video.generate_thumbnail_selection
+      else
+        @video.add_to_queue
+      end
+      
       @video.status = "original"
       @video.save
-      
-      # When in the /upload action, we normally rm the tmp file uploaded by the user. 
-      # But if we're going to let them choose from a selection of thumbnails we must keep the file around to generate thumbnails for it first.
-      FileUtils.rm self.tmp_filepath if Panda::Config[:choose_thumbnail] == false
+      FileUtils.rm @video.tmp_filepath
     rescue Amazon::SDB::RecordNotFoundError # No empty video object exists
       self.status = 404
       render_error($!.to_s.gsub(/Amazon::SDB::/,""))
@@ -150,36 +158,39 @@ class Videos < Application
     redirect "/videos/#{@video.key}"
   end
   
+  def save_thumbnail
+    provides :html
+    
+    @video.cleanup_thumbnail_selection
+    @video.thumbnail_position = params[:percentage]
+    @video.save
+    @video.add_to_queue
+    
+    if params[:iframe] == "true"
+      # If iframe is true, we've come from the upload form and the thumbnail will be generated when the video is encded
+      redirect @video.upload_redirect_url
+    else
+      # Here the video is already encoded and we're changing its thumbnail
+      @video.successfull_encodings.each do | video |
+        video.fetch_from_s3
+        video.capture_thumbnail_and_upload_to_s3
+        FileUtils.rm video.tmp_filepath
+      end
+      redirect "/videos/#{@video.key}"
+    end
+  end
+  
   def choose_thumbnail
     provides :html
-    if params[:percentage]
-      @video.thumbnail_position = params[:percentage]
-      @video.save
-      FileUtils.rm @video.tmp_filepath
-      
-      @video.cleanup_thumbnail_selection
-      
-      if params[:iframe] == "true"
-        # If iframe is true, we've come from the upload form and the thumbnail will be generated when the video is encded
-        redirect @video.upload_redirect_url
-      else
-        # Here the video is already encoded and we're changing its thumbnail
-        @video.successfull_encodings.each do | video |
-          video.fetch_from_s3
-          video.capture_thumbnail_and_upload_to_s3
-          FileUtils.rm video.tmp_filepath
-        end
-        redirect "/videos/#{@video.key}"
-      end
+    
+    @percentages = @video.thumbnail_percentages
+    
+    if params[:iframe] == "true"
+      render :layout => :uploader
     else
-      @video.fetch_from_s3 unless params[:iframe] == "true"
-      @percentages = @video.generate_thumbnail_selection
-      
-      if params[:iframe] == "true"
-        render :layout => :uploader
-      else
-        render
-      end
+      @video.fetch_from_s3
+      @video.generate_thumbnail_selection
+      render
     end
   end
   

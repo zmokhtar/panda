@@ -223,14 +223,16 @@ class Video < SimpleDB::Base
     "#{self.filename}_#{percentage}.jpg"
   end
   
-  def generate_thumbnail_selection
+  def thumbnail_percentages
     raise "choose_thumbnail config option must be a number" unless Panda::Config[:choose_thumbnail]
     divider = 100.0 / (Panda::Config[:choose_thumbnail] + 2).to_f
     percentages = (1..Panda::Config[:choose_thumbnail]).map {|i| i * divider }
-    percentages.each do |percentage|
+  end
+  
+  def generate_thumbnail_selection
+    self.thumbnail_percentages.each do |percentage|
       capture_and_resize_thumbnail(percentage)
     end
-    return percentages
   end
   
   def cleanup_thumbnail_selection
@@ -240,14 +242,8 @@ class Video < SimpleDB::Base
   
   # Uploads
   # =======
-  
-  def process
-    self.valid?
-    self.read_metadata
-    self.upload_to_s3
-    self.add_to_queue
-  end
-  
+
+
   def valid?
     raise NotValid unless self.empty?
     return true
