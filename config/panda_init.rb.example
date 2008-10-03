@@ -30,6 +30,9 @@ Panda::Config.use do |p|
   p[:sdb_profiles_domain]    = "panda_profiles"
   
   p[:thumbnail_height_constrain] = 125
+  # Number of thumbnails you can choose from after uploading video.
+  # If you do not set this value, thumbnail selection will be ignored. 
+  p[:choose_thumbnail]       = 6 
   
   p[:notification_retries] = 6 # How many times should a failed notification be retried?
   p[:notification_frequency] = 2 # How many
