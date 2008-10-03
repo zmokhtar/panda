@@ -1,22 +1,14 @@
 class Videos < Application
-  provides :html, :xml, :yaml # Allow before filters to accept all formats, which are then futher refined in each action
   before :require_login, :only => [:index, :show, :destroy, :new, :create, :add_to_queue]
   before :set_video, :only => [:show, :destroy, :add_to_queue]
-  before :set_video_with_nice_errors, :only => [:form, :done, :state, :choose_thumbnail, :save_thumbnail]
+  before :set_video_with_nice_errors, :only => [:form, :done, :state]
 
   def index
     provides :html, :xml, :yaml
-    # @videos = AWS::S3::Bucket.find('pandavision').objects
+    
     @videos = Video.all
     
-    case content_type
-    when :html
-      render
-    when :xml
-      {:videos => @videos.map {|v| v.show_response }}.to_simple_xml
-    when :yaml
-      {:videos => @videos.map {|v| v.show_response }}.to_yaml
-    end
+    display @videos
   end
 
   def show
@@ -43,16 +35,13 @@ class Videos < Application
   end
   
   # Use: HQ
-  # Only used in the admin side to post to create and then forward to the form where the video is uploaded
+  # Only used in the admin side to post to create and then forward to the form 
+  # where the video is uploaded
   def new
-    provides :html
     render :layout => :simple
   end
   
-  def edit
-    # TODO: Edit video action
-  end
-  
+  # Use: HQ
   def destroy
     @video.obliterate!
     redirect "/videos"
@@ -61,16 +50,16 @@ class Videos < Application
   # Use: HQ, API
   def create
     provides :html, :xml, :yaml
-    @video = Video.create
-    @video.status = 'empty'
-    @video.save
+    
+    @video = Video.create_empty
     Merb.logger.info "#{@video.key}: Created video"
+    
+    # TODO: Explain what this is for!
     sleep 2
 
     case content_type
     when :html
-      redirect "/videos/#{@video.key}/form"
-      # redirect url(:controller => :videos, :action => :form, :id => @video.key)
+      redirect url(:form_video, @video.key)
     when :xml
       headers.merge!({'Location'=> "/videos/#{@video.key}"})
       @video.create_response.to_simple_xml
@@ -80,20 +69,13 @@ class Videos < Application
     end
   end
   
-  def update
-    # TODO: Update video action
-  end
-  
   # Use: HQ, API, iframe upload
   def form
-    provides :html
     render :layout => :uploader
   end
   
   # Use: HQ, http/iframe upload
   def upload
-    provides :html#, :xml, :yaml, :json
-    
     begin
       raise Video::NoFileSubmitted if !params[:file] || params[:file].blank?
       @video = Video.find(params[:id])
@@ -140,58 +122,15 @@ class Videos < Application
     end
   end
   
-  
-  # NOTE: Default done page people see after successfully uploading a video. Edit init.rb and set upload_redirect_url to be somewhere else.
+  # Default upload_redirect_url (set in panda_init.rb) goes here.
   def done
-    provides :html
     render :layout => :uploader
   end
   
-  # NOTE: This action should only be used for local testing, and in production should be an action in the app you're integrating Panda into. Be sure to set the state_update_url setting in your init.rb
-  # TODO: Only allow from localhost
-  def state
-    Merb.logger.info(params.to_yaml)
-  end
-  
+  # TODO: Why do we need this method?
   def add_to_queue
     @video.add_to_queue
     redirect "/videos/#{@video.key}"
-  end
-  
-  def save_thumbnail
-    provides :html
-    
-    @video.cleanup_thumbnail_selection
-    @video.thumbnail_position = params[:percentage]
-    @video.save
-    @video.add_to_queue
-    
-    if params[:iframe] == "true"
-      # If iframe is true, we've come from the upload form and the thumbnail will be generated when the video is encded
-      redirect @video.upload_redirect_url
-    else
-      # Here the video is already encoded and we're changing its thumbnail
-      @video.successfull_encodings.each do | video |
-        video.fetch_from_s3
-        video.capture_thumbnail_and_upload_to_s3
-        FileUtils.rm video.tmp_filepath
-      end
-      redirect "/videos/#{@video.key}"
-    end
-  end
-  
-  def choose_thumbnail
-    provides :html
-    
-    @percentages = @video.thumbnail_percentages
-    
-    if params[:iframe] == "true"
-      render :layout => :uploader
-    else
-      @video.fetch_from_s3
-      @video.generate_thumbnail_selection
-      render
-    end
   end
   
 private

@@ -1,6 +1,5 @@
 # all your other controllers should inherit from this one to share code.
 class Application < Merb::Controller
-  provides :html
   # Auth plugin
   attr_accessor :user
   
@@ -21,7 +20,7 @@ private
       end
       throw :halt, redirect("/login") unless @user
     when "xml", "yaml"
-      throw :halt, render('', :status => 401) unless params[:account_key] == Panda::Config[:api_key]
+      throw :halt, render('<error>Invalid account_key</error>', :status => 401) unless params[:account_key] == Panda::Config[:api_key]
     else
       throw :halt, render('', :status => 401)
     end

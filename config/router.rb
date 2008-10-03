@@ -21,7 +21,9 @@
 
 Merb.logger.info("Compiling routes...")
 Merb::Router.prepare do |r|
-  r.resources :videos, :member => {:form => :get, :upload => :post, :done => :get, :state => :post, :add_to_queue => :get, :choose_thumbnail => :get, :save_thumbnail => :get }, :collection => {:exp => :get}
+  r.resources :videos, :member => {:form => :get, :upload => :post, :done => :get, :state => :get, :add_to_queue => :get }, :collection => {:exp => :get} do |video|
+    video.resource :thumbnail
+  end
   
   r.match("/signup").to(:controller => "accounts", :action => "new")
   r.match("/login").to(:controller => "auth", :action => "login")

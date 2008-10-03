@@ -6,6 +6,14 @@ class Video < SimpleDB::Base
   # An original video can either be 'empty' if it hasn't had the video file uploaded, or 'original' if it has
   # An encoding will have it's original attribute set to the key of the original parent, and a status of 'queued', 'processing', 'success', or 'error'
   
+  def self.create_empty
+    video = Video.create
+    video.status = 'empty'
+    video.save
+    
+    return video
+  end
+  
   def to_sym
     'videos'
   end
@@ -201,9 +209,11 @@ class Video < SimpleDB::Base
   end
   
   def capture_and_resize_thumbnail(percentage)
+    raise RuntimeError, "You may not call capture_and_resize_thumbnail unless the video is available locally" unless File.exists?(self.tmp_filepath)
+    
     tmp_img = self.tmp_filepath + "_#{UUID.new}.jpg"
     # tmp_img = Merb.root + 'public/images/tmp/' + "#{UUID.new}.jpg"
-
+    
     t = RVideo::Inspector.new(:file => self.tmp_filepath)
     t.capture_frame("#{percentage}%", tmp_img)
     
