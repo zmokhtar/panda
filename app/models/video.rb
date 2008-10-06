@@ -66,7 +66,7 @@ class Video < SimpleDB::Base
     self.class.query("['parent' = '#{self.key}']")
   end
   
-  def successfull_encodings
+  def successful_encodings
     self.class.query("['parent' = '#{self.key}'] intersection ['status' = 'success']")
   end
   
@@ -98,7 +98,7 @@ class Video < SimpleDB::Base
   end
   
   def redirect_after_upload
-    Panda::Config[:choose_thumbnail] ? "/videos/#{self.key}/choose_thumbnail?iframe=true" : self.upload_redirect_url
+    Panda::Config[:choose_thumbnail] ? "/videos/#{self.key}/thumbnail/new?iframe=true" : self.upload_redirect_url
   end
   
   def upload_redirect_url
@@ -190,51 +190,47 @@ class Video < SimpleDB::Base
     Store.delete(self.filename)
   end
   
-  def capture_thumbnail_and_upload_to_s3
-    screenshot_tmp_filepath = self.tmp_filepath + ".jpg"
-    thumbnail_tmp_filepath = self.tmp_filepath + "_thumb.jpg"
-    
-    # MAKE THIS USE capture_and_resize_thumbnail
-    t = RVideo::Inspector.new(:file => self.tmp_filepath)
-    t.capture_frame("#{self.parent_video.thumbnail_position || "50"}%", screenshot_tmp_filepath)
-    
-    constrain_to_height = Panda::Config[:thumbnail_height_constrain].to_f
-    width = (self.width.to_f/(self.height.to_f/constrain_to_height)).to_i
-    height = constrain_to_height.to_i
-    
-    GDResize.new.resize(screenshot_tmp_filepath, thumbnail_tmp_filepath, [width,height])
-    
-    Store.set(self.screenshot, screenshot_tmp_filepath)
-    Store.set(self.thumbnail, thumbnail_tmp_filepath)
+  def upload_thumbnail_to_s3
+    percentage = (self.parent_video.thumbnail_position || self.default_thumbnail_position)
+    Store.set(self.screenshot, self.screenshot_tmp_filepath(percentage))
+    Store.set(self.thumbnail, self.thumbnail_tmp_filepath(percentage))
   end
   
   def capture_and_resize_thumbnail(percentage)
     raise RuntimeError, "You may not call capture_and_resize_thumbnail unless the video is available locally" unless File.exists?(self.tmp_filepath)
     
-    tmp_img = self.tmp_filepath + "_#{UUID.new}.jpg"
-    # tmp_img = Merb.root + 'public/images/tmp/' + "#{UUID.new}.jpg"
-    
     t = RVideo::Inspector.new(:file => self.tmp_filepath)
-    t.capture_frame("#{percentage}%", tmp_img)
+    t.capture_frame("#{percentage}%", screenshot_tmp_filepath(percentage))
     
-    constrain_to_height = 128
+    constrain_to_height = Panda::Config[:thumbnail_height_constrain].to_f
     width = (self.width.to_f/(self.height.to_f/constrain_to_height)).to_i
     height = constrain_to_height.to_i
     
-    GDResize.new.resize(tmp_img, self.tmp_thumbnail_for_selection_filepath(percentage), [width,height])
-    FileUtils.rm tmp_img
+    GDResize.new.resize(self.screenshot_tmp_filepath(percentage), self.thumbnail_tmp_filepath(percentage), [width,height])
   end
   
-  def tmp_thumbnail_for_selection_filepath(percentage)
-    "public/images/tmp/#{self.tmp_thumbnail_for_selection_filename(percentage)}"
+  def screenshot_tmp_filepath(percentage)
+    "public" + tmp_images_dir / "#{self.filename}_#{percentage}.jpg"
   end
   
-  def tmp_thumbnail_for_selection_filename(percentage)
-    "#{self.filename}_#{percentage}.jpg"
+  def thumbnail_tmp_filepath(percentage)
+    "public" + tmp_images_dir / "#{self.filename}_#{percentage}_thumb.jpg"
+  end
+  
+  def thumbnail_tmp_url(percentage)
+    tmp_images_dir / "#{self.filename}_#{percentage}_thumb.jpg"
+  end
+  
+  def tmp_images_dir
+    "/images/tmp"
+  end
+  
+  def default_thumbnail_position
+    50.0
   end
   
   def thumbnail_percentages
-    raise "choose_thumbnail config option must be a number" unless Panda::Config[:choose_thumbnail]
+    return [self.default_thumbnail_position] if Panda::Config[:choose_thumbnail] == false
     divider = 100.0 / (Panda::Config[:choose_thumbnail] + 2).to_f
     percentages = (1..Panda::Config[:choose_thumbnail]).map {|i| i * divider }
   end
@@ -245,9 +241,9 @@ class Video < SimpleDB::Base
     end
   end
   
-  def cleanup_thumbnail_selection
-    FileUtils.rm  Dir.glob("public/images/tmp/#{self.filename}*.jpg")
-  end
+  # def cleanup_thumbnail_selection
+  #   FileUtils.rm  Dir.glob("public/images/tmp/#{self.filename}*.jpg")
+  # end
     
   
   # Uploads
@@ -260,7 +256,7 @@ class Video < SimpleDB::Base
   end
   
   def read_metadata
-    Merb.logger.info "#{self.key}: Meading metadata of video file"
+    Merb.logger.info "#{self.key}: Reading metadata of video file"
     
     inspector = RVideo::Inspector.new(:file => self.tmp_filepath)
 
@@ -597,7 +593,8 @@ RESPONSE
       end
       
       self.upload_to_s3
-      self.capture_thumbnail_and_upload_to_s3
+      self.generate_thumbnail_selection # Generate thumbnails for all percentage options
+      self.upload_thumbnail_to_s3
       
       self.notification = 0
       self.status = "success"

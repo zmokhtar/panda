@@ -17,7 +17,6 @@ class Thumbnail < Application
   # the video is encoded
   # 
   def create
-    @video.cleanup_thumbnail_selection
     @video.thumbnail_position = params[:percentage]
     @video.save
     @video.add_to_queue
@@ -28,8 +27,6 @@ class Thumbnail < Application
   def edit
     @percentages = @video.thumbnail_percentages
     
-    @video.fetch_from_s3
-    @video.generate_thumbnail_selection
     render
   end
   
@@ -38,15 +35,11 @@ class Thumbnail < Application
   # The video is already encoded and we're changing its thumbnail
   # 
   def update
-    @video.cleanup_thumbnail_selection
     @video.thumbnail_position = params[:percentage]
     @video.save
-    # @video.add_to_queue
     
     @video.successfull_encodings.each do | video |
-      video.fetch_from_s3
-      video.capture_thumbnail_and_upload_to_s3
-      FileUtils.rm video.tmp_filepath
+      video.upload_thumbnail_to_s3
     end
     
     redirect "/videos/#{@video.key}"
