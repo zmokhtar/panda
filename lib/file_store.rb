@@ -1,4 +1,4 @@
-class FileStore
+class FileStore < AbstractStore
   include FileUtils
   
   def initialize
@@ -15,11 +15,15 @@ class FileStore
   # Get file.
   def get(key, tmp_file)
     cp(@dir / key, tmp_file)
+  rescue
+    raise_file_error(key)
   end
   
   # Delete file. Returns true if success.
   def delete(key)
     rm(@dir / key)
+  rescue
+    raise_file_error(key)
   end
   
   # Return the publically accessible URL for the given key
