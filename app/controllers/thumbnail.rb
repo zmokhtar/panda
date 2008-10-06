@@ -38,11 +38,11 @@ class Thumbnail < Application
     @video.thumbnail_position = params[:percentage]
     @video.save
     
-    @video.successfull_encodings.each do | video |
+    @video.successful_encodings.each do | video |
       video.upload_thumbnail_to_s3
     end
     
-    redirect "/videos/#{@video.key}"
+    redirect url(:video, @video.key)
   end
   
   private

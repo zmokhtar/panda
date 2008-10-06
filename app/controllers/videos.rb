@@ -112,11 +112,13 @@ class Videos < Application
     else
       case content_type
       when :html  
+        url = Panda::Config[:choose_thumbnail] ? "/videos/#{@video.key}/thumbnail/new?iframe=true" : @video.upload_redirect_url
+        
         # Special internal Panda case: textarea hack to get around the fact that the form is submitted with a hidden iframe and thus the response is rendered in the iframe
         if params[:iframe] == "true"
-          "<textarea>" + {:location => @video.redirect_after_upload}.to_json + "</textarea>"
+          "<textarea>" + {:location => url}.to_json + "</textarea>"
         else
-          redirect @video.redirect_after_upload
+          redirect url
         end
       end
     end

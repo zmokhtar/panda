@@ -79,6 +79,7 @@ class Video < SimpleDB::Base
   
   # Delete an original video and all it's encodings.
   def obliterate!
+    # TODO: should this raise an exception if the file does not exist?
     self.delete_from_s3
     self.encodings.each do |e|
       e.delete_from_s3
@@ -95,10 +96,6 @@ class Video < SimpleDB::Base
   # Has the actual video file been uploaded for encoding?
   def empty?
     self.status == 'empty'
-  end
-  
-  def redirect_after_upload
-    Panda::Config[:choose_thumbnail] ? "/videos/#{self.key}/thumbnail/new?iframe=true" : self.upload_redirect_url
   end
   
   def upload_redirect_url
