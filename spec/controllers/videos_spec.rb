@@ -55,7 +55,7 @@ describe Videos, "upload action" do
     @video.filename = 'abc.avi'
     
     Panda::Config.use do |p|
-      p[:tmp_video_dir] = '/tmp'
+      p[:private_tmp_path] = '/tmp'
       p[:state_update_url] = "http://localhost:4000/videos/$id/status"
       p[:upload_redirect_url] = "http://localhost:4000/videos/$id/done"
       p[:videos_domain] = "videos.pandastream.com"

@@ -21,6 +21,11 @@ module Panda
           :notification_email     => nil,
           :upload_redirect_url    => "http://127.0.0.1:3000/videos/$1/done",
           :state_update_url       => "http://127.0.0.1:3000/videos/$1/status",
+          
+          :private_tmp_path       => "videos",
+          :public_tmp_path        => Merb.root / "public" / "tmp",
+          :public_tmp_url         => "/tmp",
+          
           :videos_domain          => nil,
           :storage                => :filesystem, # or :s3 TODO: implement
           :thumbnail_height_constrain => 126,
