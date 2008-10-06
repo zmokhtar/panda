@@ -183,8 +183,12 @@ class Video < SimpleDB::Base
     Store.get(self.filename, self.tmp_filepath)
   end
   
+  # Deletes the video file without raising an exception if the file does 
+  # not exist.
   def delete_from_s3
     Store.delete(self.filename)
+  rescue AbstractStore::FileDoesNotExistError
+    false
   end
   
   def upload_thumbnail_to_s3

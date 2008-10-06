@@ -38,8 +38,7 @@ class S3Store < AbstractStore
         sleep 3
       end
     rescue
-      Merb.logger.error "Error fetching #{key} from S3"
-      raise
+      raise_file_error(key)
     else
       true
     end
@@ -54,8 +53,7 @@ class S3Store < AbstractStore
         sleep 3
       end
     rescue
-      Merb.logger.error "Error deleting #{key} from S3"
-      raise
+      raise_file_error(key)
     else
       true
     end
