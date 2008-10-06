@@ -24,6 +24,7 @@ module Panda
           :videos_domain          => nil,
           :storage                => :filesystem, # or :s3 TODO: implement
           :thumbnail_height_constrain => 126,
+          :choose_thumbnail       => false,
           :notification_frequency => 3,
           :notification_retries => 6
         }
