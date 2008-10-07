@@ -8,7 +8,7 @@
 	</tr>
 <% encodings.each do |v| %>
 	<tr>
-	  <td><div class="thumb"><a href="/videos/<%= v.key %>"><img src="<%= v.thumbnail_url %>" /></a></div></td>
+	  <td><div class="thumb"><a href="/videos/<%= v.key %>"><img src="<%= v.clipping.url(:thumbnail) %>" /></a></div></td>
 		<td>
 			<a href="/videos/<%= v.key %>" class="filename"><%= v.original_filename || "No filename" %></a>
 			<span><%= v.duration_str %></span>

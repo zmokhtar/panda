@@ -15,3 +15,4 @@ config/panda_init_*.rb
 panda_all_staging_nginx.conf
 public/images/tmp/*jpg
 public/store
+public/tmp

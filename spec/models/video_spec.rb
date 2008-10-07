@@ -16,6 +16,12 @@ describe Video do
     Store.stub!(:delete).and_return(true)
   end
   
+  describe "clipping" do
+    it "should return a clipping" do
+      @video.clipping.should be_kind_of(Clipping)
+    end
+  end
+  
   # Classification
   # ==============
   
@@ -128,25 +134,6 @@ describe Video do
     @video.resolution.should be_nil
   end
   
-  # def video_bitrate_in_bits
-  # def audio_bitrate_in_bits
-  
-  it "screenshot" do
-    @video.screenshot.should == 'abc.mov.jpg'
-  end
-  
-  it "thumbnail" do
-    @video.thumbnail.should == 'abc.mov_thumb.jpg'
-  end
-  
-  it "screenshot_url" do
-    @video.screenshot_url.should == "http://videos.pandastream.com/abc.mov.jpg"
-  end
-  
-  it "thumbnail_url" do
-    @video.thumbnail_url.should == "http://videos.pandastream.com/abc.mov_thumb.jpg"
-  end
-  
   # def set_encoded_at
   
   # Encding attr helpers
@@ -173,25 +160,7 @@ describe Video do
   it "should upload_to_s3"
   
   it "should fetch_from_s3"
-  
-  it "should capture_thumbnail_and_upload_to_s3" do
-    inspector = mock(RVideo::Inspector)
-    inspector.should_receive(:capture_frame).with('50%', '/tmp/abc.mov.jpg')
-    RVideo::Inspector.should_receive(:new).with(:file => '/tmp/abc.mov').and_return(inspector)
     
-    gd = mock(GDResize)
-    gd.should_receive(:resize).with('/tmp/abc.mov.jpg', '/tmp/abc.mov_thumb.jpg', [168,126]) # Dimensions based on thumbnail_height_constrain of 126
-    GDResize.should_receive(:new).and_return(gd)
-    
-    Store.should_receive(:set).with('abc.mov.jpg', '/tmp/abc.mov.jpg').and_return(true)
-    Store.should_receive(:set).with('abc.mov_thumb.jpg', '/tmp/abc.mov_thumb.jpg').and_return(true)
-
-    parent_video = mock (Video)
-    parent_video.should_receive(:thumbnail_position).and_return(false)
-    @video.should_receive(:parent_video).and_return(parent_video)
-    @video.capture_thumbnail_and_upload_to_s3.should be_true
-  end
-  
   # Uploads
   # =======
   
@@ -294,9 +263,6 @@ describe Video do
     lambda {@video.send_notification}.should raise_error(StandardError)
   end
   
-  # it "should send_status_update_to_client" do
-    
-  
   # Encoding
   # ========
   
@@ -357,7 +323,11 @@ describe Video do
     encoding.should_receive(:encode_flv_flash)
   
     encoding.should_receive(:upload_to_s3)
-    encoding.should_receive(:capture_thumbnail_and_upload_to_s3)
+    encoding.should_receive(:generate_thumbnail_selection)
+    clipping = returning(mock(Clipping)) do |c|
+      c.should_receive(:upload_to_store)
+    end
+    encoding.should_receive(:clipping).and_return(clipping)
     
     encoding.should_receive(:notification=).with(0)
     encoding.should_receive(:status=).with("success")

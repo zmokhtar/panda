@@ -18,6 +18,10 @@ class Video < SimpleDB::Base
     'videos'
   end
   
+  def clipping
+    Clipping.new(self)
+  end
+  
   # Classification
   # ==============
   
@@ -90,7 +94,7 @@ class Video < SimpleDB::Base
 
   # Location to store video file fetched from S3 for encoding
   def tmp_filepath
-    Panda::Config[:tmp_video_dir] / self.filename
+    Panda::Config[:private_tmp_path] / self.filename
   end
   
   # Has the actual video file been uploaded for encoding?
@@ -123,22 +127,6 @@ class Video < SimpleDB::Base
     self.audio_bitrate.to_i * 1024
   end
   
-  def screenshot
-    self.filename + ".jpg"
-  end
-  
-  def thumbnail
-    self.filename + "_thumb.jpg"
-  end
-  
-  def screenshot_url
-    Store.url(self.screenshot)
-  end
-  
-  def thumbnail_url
-    Store.url(self.thumbnail)
-  end
-  
   # Encding attr helpers
   # ====================
   
@@ -148,7 +136,7 @@ class Video < SimpleDB::Base
   
   def embed_html
     return nil unless self.encoding?
-    %(<embed src="#{Store.url('flvplayer.swf')}" width="#{self.width}" height="#{self.height}" allowfullscreen="true" allowscriptaccess="always" flashvars="&displayheight=#{self.height}&file=#{self.url}&width=#{self.width}&height=#{self.height}&image=#{self.screenshot_url}" />)
+    %(<embed src="#{Store.url('flvplayer.swf')}" width="#{self.width}" height="#{self.height}" allowfullscreen="true" allowscriptaccess="always" flashvars="&displayheight=#{self.height}&file=#{self.url}&width=#{self.width}&height=#{self.height}&image=#{self.clipping.url(:screenshot)}" />)
   end
   
   def embed_js
@@ -159,7 +147,7 @@ class Video < SimpleDB::Base
       var flashvars = {};
       
       flashvars.file = "#{self.url}";
-      flashvars.image = "#{self.screenshot_url}";
+      flashvars.image = "#{self.clipping.url(:screenshot)}";
       flashvars.width = "#{self.width}";
       flashvars.height = "#{self.height}";
       flashvars.fullscreen = "true";
@@ -191,61 +179,21 @@ class Video < SimpleDB::Base
     false
   end
   
-  def upload_thumbnail_to_s3
-    percentage = (self.parent_video.thumbnail_position || self.default_thumbnail_position)
-    Store.set(self.screenshot, self.screenshot_tmp_filepath(percentage))
-    Store.set(self.thumbnail, self.thumbnail_tmp_filepath(percentage))
-  end
-  
-  def capture_and_resize_thumbnail(percentage)
-    raise RuntimeError, "You may not call capture_and_resize_thumbnail unless the video is available locally" unless File.exists?(self.tmp_filepath)
-    
-    t = RVideo::Inspector.new(:file => self.tmp_filepath)
-    t.capture_frame("#{percentage}%", screenshot_tmp_filepath(percentage))
-    
-    constrain_to_height = Panda::Config[:thumbnail_height_constrain].to_f
-    width = (self.width.to_f/(self.height.to_f/constrain_to_height)).to_i
-    height = constrain_to_height.to_i
-    
-    GDResize.new.resize(self.screenshot_tmp_filepath(percentage), self.thumbnail_tmp_filepath(percentage), [width,height])
-  end
-  
-  def screenshot_tmp_filepath(percentage)
-    "public" + tmp_images_dir / "#{self.filename}_#{percentage}.jpg"
-  end
-  
-  def thumbnail_tmp_filepath(percentage)
-    "public" + tmp_images_dir / "#{self.filename}_#{percentage}_thumb.jpg"
-  end
-  
-  def thumbnail_tmp_url(percentage)
-    tmp_images_dir / "#{self.filename}_#{percentage}_thumb.jpg"
-  end
-  
-  def tmp_images_dir
-    "/images/tmp"
-  end
-  
-  def default_thumbnail_position
-    50.0
-  end
-  
   def thumbnail_percentages
-    return [self.default_thumbnail_position] if Panda::Config[:choose_thumbnail] == false
-    divider = 100.0 / (Panda::Config[:choose_thumbnail] + 2).to_f
-    percentages = (1..Panda::Config[:choose_thumbnail]).map {|i| i * divider }
+    choose_thumbnail = Panda::Config[:choose_thumbnail]
+    
+    return [self.default_thumbnail_position] if choose_thumbnail == false
+    
+    divider = 100.0 / (choose_thumbnail + 2).to_f
+    percentages = (1..choose_thumbnail).map {|i| i * divider }
   end
   
   def generate_thumbnail_selection
     self.thumbnail_percentages.each do |percentage|
-      capture_and_resize_thumbnail(percentage)
+      self.clipping.capture(percentage)
+      self.clipping.resize(percentage)
     end
   end
-  
-  # def cleanup_thumbnail_selection
-  #   FileUtils.rm  Dir.glob("public/images/tmp/#{self.filename}*.jpg")
-  # end
-    
   
   # Uploads
   # =======
@@ -594,8 +542,8 @@ RESPONSE
       end
       
       self.upload_to_s3
-      self.generate_thumbnail_selection # Generate thumbnails for all percentage options
-      self.upload_thumbnail_to_s3
+      self.generate_thumbnail_selection
+      self.clipping.upload_to_store
       
       self.notification = 0
       self.status = "success"

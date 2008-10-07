@@ -39,7 +39,7 @@ class Thumbnail < Application
     @video.save
     
     @video.successful_encodings.each do | video |
-      video.upload_thumbnail_to_s3
+      video.clipping.upload_to_store
     end
     
     redirect url(:video, @video.key)
