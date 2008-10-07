@@ -7,6 +7,9 @@ describe Thumbnail do
     @video.stub!(:filename).and_return('')
     @video.stub!(:key).and_return('123')
     Video.stub!(:find).with(@video.filename).and_return(@video)
+    @clipping = mock(Clipping)
+    @clipping.stub!(:changeable?).and_return(true)
+    @video.stub!(:clipping).and_return(@clipping)
   end
 
   describe "edit action" do
@@ -16,6 +19,14 @@ describe Thumbnail do
         c.stub!(:render)
         c.stub!(:require_login).and_return(true)
       end.should be_successful
+    end
+    
+    it "should not allow access if the clipping cannot be changed" do
+      @clipping.should_receive(:changeable?).and_return(false)
+      
+      dispatch_to(Thumbnail, :edit, :video_id => @video.filename ) do | c |
+        c.stub!(:require_login).and_return(true)
+      end.body.should == 'Thumbnail cannot be changed'
     end
   end
   

@@ -2,6 +2,7 @@ class Thumbnail < Application
 
   before :require_login, :only => [:edit, :update]
   before :get_video
+  before :ensure_that_clipping_can_be_changed
   
   # This will be inside an iframe.
   # 
@@ -50,6 +51,12 @@ class Thumbnail < Application
   def get_video
     # Throws Amazon::SDB::RecordNotFoundError if video cannot be found
     @video = Video.find(params[:video_id])
+  end
+  
+  def ensure_that_clipping_can_be_changed
+    unless @video.clipping.changeable?
+      throw :halt, 'Thumbnail cannot be changed'
+    end
   end
   
 end
