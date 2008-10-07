@@ -52,6 +52,13 @@ describe Clipping do
     
   end
   
+  describe "tmp_url" do
+    it "should use public_url to generate url" do
+      @clipping.should_receive(:public_url).with(@video.filename, :thumbnail, 40, '.jpg')
+      @clipping.tmp_url(:thumbnail, 40)
+    end
+  end
+  
   describe "position" do
     it "should read thumbnail_position from the parent video" do
       @parent_video.stub!(:thumbnail_position).and_return(99)

@@ -1,8 +1,8 @@
-# Clipping for a given encoding.
-# 
-# Does it make sense for a parent video?
+# Clipping for a given encoding or parent video.
 # 
 class Clipping
+  
+  include LocalStore
   
   def initialize(video)
     @video = video
@@ -24,8 +24,8 @@ class Clipping
   end
   
   # URL on the panda instance (before it has been uploaded)
-  def tmp_url(size)
-    Panda::Config[:public_tmp_url] + args.map { |e| e.to_s }.join('_')
+  def tmp_url(size, position)
+    public_url(@video.filename, size, position, '.jpg')
   end
   
   # Position (as percentage) within the video
@@ -37,7 +37,7 @@ class Clipping
     raise RuntimeError, "Video must exist to call capture" unless File.exists?(@video.tmp_filepath)
         
     t = RVideo::Inspector.new(:file => @video.tmp_filepath)
-    t.capture_frame("#{position_chosen}%", public_filepath(@video.filename, :screenshot, position_chosen))
+    t.capture_frame("#{position_chosen}%", tmp_path(:screenshot, position_chosen))
   end
   
   def resize(position_chosen = position())
@@ -47,18 +47,18 @@ class Clipping
     width = (@video.width.to_f/@video.height.to_f) * height
     
     GDResize.new.resize \
-      public_filepath(@video.filename, :screenshot, position_chosen),
-      public_filepath(@video.filename, :thumbnail, position_chosen),
+      tmp_path(:screenshot, position_chosen),
+      tmp_path(:thumbnail, position_chosen),
       [width.to_i, height.to_i]
   end
   
   def upload_to_store
     Store.set \
       filename(:screenshot), 
-      public_filepath(@video.filename, :screenshot, position)
+      tmp_path(:screenshot, self.position)
     Store.set \
       filename(:thumbnail), 
-      public_filepath(@video.filename, :thumbnail, position)
+      tmp_path(:thumbnail, self.position)
   end
   
   private
@@ -67,9 +67,8 @@ class Clipping
     @video.parent_video
   end
   
-  # This path can be accessible from the web
-  def public_filepath(*args)
-    Panda::Config[:public_tmp_path] / args.map { |e| e.to_s }.join('_')
+  def tmp_path(size, position)
+    public_filepath(@video.filename, size, position, '.jpg')
   end
   
 end
