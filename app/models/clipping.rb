@@ -33,6 +33,25 @@ class Clipping
     parent_video.thumbnail_position || 50
   end
   
+  def capture(position_chosen = position())
+    raise RuntimeError, "Video must exist to call capture" unless File.exists?(@video.tmp_filepath)
+        
+    t = RVideo::Inspector.new(:file => @video.tmp_filepath)
+    t.capture_frame("#{position_chosen}%", public_filepath(@video.filename, :screenshot, position_chosen))
+  end
+  
+  def resize(position_chosen = position())
+    constrain_to_height = Panda::Config[:thumbnail_height_constrain].to_f
+    
+    height = constrain_to_height
+    width = (@video.width.to_f/@video.height.to_f) * height
+    
+    GDResize.new.resize \
+      public_filepath(@video.filename, :screenshot, position_chosen),
+      public_filepath(@video.filename, :thumbnail, position_chosen),
+      [width.to_i, height.to_i]
+  end
+  
   def upload_to_store
     Store.set \
       filename(:screenshot), 
