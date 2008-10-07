@@ -85,18 +85,8 @@ class Videos < Application
       # @video.process
       @video.valid?
       @video.read_metadata
-      @video.upload_to_s3
-      
-      # Generate thumbnails before we save so the encoder doesn't get there first and delete our file!
-      if Panda::Config[:choose_thumbnail]
-        @video.generate_thumbnail_selection
-      else
-        @video.add_to_queue
-      end
-      
       @video.status = "original"
       @video.save
-      FileUtils.rm @video.tmp_filepath
     rescue Amazon::SDB::RecordNotFoundError # No empty video object exists
       self.status = 404
       render_error($!.to_s.gsub(/Amazon::SDB::/,""))
@@ -112,12 +102,20 @@ class Videos < Application
     else
       case content_type
       when :html  
-        url = Panda::Config[:choose_thumbnail] ? "/videos/#{@video.key}/thumbnail/new?iframe=true" : @video.upload_redirect_url
+        url = @video.upload_redirect_url
         
         # Special internal Panda case: textarea hack to get around the fact that the form is submitted with a hidden iframe and thus the response is rendered in the iframe
         if params[:iframe] == "true"
-          "<textarea>" + {:location => url}.to_json + "</textarea>"
+          html = "<textarea>" + {:location => url}.to_json + "</textarea>"
+          
+          render_then_call html do
+            @video.upload_to_s3
+            @video.generate_thumbnail_selection
+            @video.add_to_queue
+            FileUtils.rm @video.tmp_filepath
+          end
         else
+          # Need redirect then call
           redirect url
         end
       end
