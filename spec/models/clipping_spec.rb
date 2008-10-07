@@ -132,4 +132,17 @@ describe Clipping do
     end
   end
   
+  describe "changeable?" do
+    it "should be true if panda configured for multiple thumbnails" do
+      Panda::Config.should_receive(:[]).with(:choose_thumbnail).and_return(6)
+      @clipping.should be_changeable
+    end
+    
+    it "should be false if panda not configured for multiple thumbnails" do
+      Panda::Config.should_receive(:[]).with(:choose_thumbnail).
+        and_return(false)
+      @clipping.should_not be_changeable
+    end
+  end
+  
 end

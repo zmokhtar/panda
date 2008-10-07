@@ -61,6 +61,10 @@ class Clipping
       tmp_path(:thumbnail, self.position)
   end
   
+  def changeable?
+    Panda::Config[:choose_thumbnail] != false
+  end
+  
   private
   
   def parent_video

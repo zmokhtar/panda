@@ -1,6 +1,8 @@
 <ul class="actions">
   <li><%= link_to "Add to queue", "/videos/#{@video.key}/add_to_queue" %></li>
+  <% if @video.clipping.changeable? %>
   <li><%= link_to "Change thumbnail", "/videos/#{@video.key}/thumbnail/edit" %></li>
+  <% end %>
   <li>
     <%= form_for(@video, :action => url(:video, :id => @video.key), :method => :delete) do %>
       <%= submit "Delete video", :onclick => "var agree=confirm('This will delete the original video file and all its encodings');if (agree) {return true} else {return false}" %>
