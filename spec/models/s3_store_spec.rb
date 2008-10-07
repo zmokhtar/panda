@@ -51,7 +51,7 @@ describe S3Store do
 
       lambda {
         @store.get('abc.mov', '/tmp/abc.mov')
-      }.should raise_error(AWS::S3::S3Exception)
+      }.should raise_error(AbstractStore::FileDoesNotExistError)
     end
     
   end
