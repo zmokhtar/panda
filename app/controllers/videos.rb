@@ -106,9 +106,9 @@ class Videos < Application
     rescue Video::VideoError
       self.status = 500
       render_error($!.to_s.gsub(/Video::/,""))
-    rescue
+    rescue => e
       self.status = 500
-      render_error("InternalServerError") # TODO: Use this generic error in production
+      render_error("InternalServerError", e) # TODO: Use this generic error in production
     else
       case content_type
       when :html  
@@ -137,8 +137,8 @@ class Videos < Application
   
 private
 
-  def render_error(msg)
-    Merb.logger.error "#{params[:id]}: (500 returned to client) #{msg}"
+  def render_error(msg, exception = nil)
+    Merb.logger.error "#{params[:id]}: (500 returned to client) #{msg}" + (exception ? "#{exception}\n#{exception.backtrace.join("\n")}" : '')
 
     case content_type
     when :html

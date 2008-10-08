@@ -130,6 +130,13 @@ describe Videos, "upload action" do
     @c.body.should match(/InternalServerError/)
     @c.status.should == 500
   end
+
+  it "should log error message, but do not display to user if an unkown exception is raised" do
+    Video.stub!(:find).with("abc").and_raise(RuntimeError)
+    Merb.logger.should_receive(:error).with(/RuntimeError/)
+    @c = multipart_post(@video_upload_url, @video_upload_params)
+    @c.body.should_not match(/RuntimeError/)
+  end
   
   # Test iframe=true option with InternalServerError
   
