@@ -84,9 +84,9 @@ class Video < SimpleDB::Base
   # Delete an original video and all it's encodings.
   def obliterate!
     # TODO: should this raise an exception if the file does not exist?
-    self.delete_from_s3
+    self.delete_from_store
     self.encodings.each do |e|
-      e.delete_from_s3
+      e.delete_from_store
       e.destroy!
     end
     self.destroy!
@@ -160,20 +160,20 @@ class Video < SimpleDB::Base
   	)
 	end
   
-  # S3
-  # ==
+  # Interaction with store
+  # ======================
   
-  def upload_to_s3
+  def upload_to_store
     Store.set(self.filename, self.tmp_filepath)
   end
   
-  def fetch_from_s3
+  def fetch_from_store
     Store.get(self.filename, self.tmp_filepath)
   end
   
   # Deletes the video file without raising an exception if the file does 
   # not exist.
-  def delete_from_s3
+  def delete_from_store
     Store.delete(self.filename)
   rescue AbstractStore::FileDoesNotExistError
     false
@@ -531,7 +531,7 @@ RESPONSE
       parent_obj = self.parent_video
       Merb.logger.info "(#{Time.now.to_s}) Encoding #{self.key}"
     
-      parent_obj.fetch_from_s3
+      parent_obj.fetch_from_store
 
       if self.container == "flv" and self.player == "flash"
         self.encode_flv_flash
@@ -541,7 +541,7 @@ RESPONSE
         self.encode_unknown_format
       end
       
-      self.upload_to_s3
+      self.upload_to_store
       self.generate_thumbnail_selection
       self.clipping.upload_to_store
       

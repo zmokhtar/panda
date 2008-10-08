@@ -85,7 +85,7 @@ class Videos < Application
       # @video.process
       @video.valid?
       @video.read_metadata
-      @video.upload_to_s3
+      @video.upload_to_store
       
       # Generate thumbnails before we save so the encoder doesn't get there first and delete our file!
       if Panda::Config[:choose_thumbnail]

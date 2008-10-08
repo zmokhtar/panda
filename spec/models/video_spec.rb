@@ -157,10 +157,33 @@ describe Video do
     @video.embed_html.should == %(<embed src="http://videos.pandastream.com/flvplayer.swf" width="320" height="240" allowfullscreen="true" allowscriptaccess="always" flashvars="&displayheight=240&file=http://videos.pandastream.com/abc.flv&width=320&height=240&image=http://videos.pandastream.com/abc.flv.jpg" />)
   end
   
-  it "should upload_to_s3"
-  
-  it "should fetch_from_s3"
+  describe "storing and fetching from the store" do
+    it "should upload" do
+      Store.should_receive(:set).with(@video.filename, @video.tmp_filepath)
+      @video.upload_to_store
+    end
+
+    it "should fetch" do
+      Store.should_receive(:get).with(@video.filename, @video.tmp_filepath)
+      @video.fetch_from_store
+    end
     
+    describe "delete" do
+      it "should delete" do
+        Store.should_receive(:delete).with(@video.filename)
+        @video.delete_from_store
+      end
+      
+      it "should not raise error if delete fails" do
+        Store.should_receive(:delete).
+          and_raise(AbstractStore::FileDoesNotExistError)
+        lambda {
+          @video.delete_from_store
+        }.should_not raise_error
+      end
+    end
+  end
+  
   # Uploads
   # =======
   
@@ -316,13 +339,13 @@ describe Video do
   it "should call encode_flv_flash when encoding an flv for the flash player" do
     encoding = mock_encoding_flv_flash
     encoding.stub!(:parent_video).and_return(@video)
-    @video.should_receive(:fetch_from_s3)
+    @video.should_receive(:fetch_from_store)
   
     encoding.should_receive(:status=).with("processing")
     encoding.should_receive(:save).twice
     encoding.should_receive(:encode_flv_flash)
   
-    encoding.should_receive(:upload_to_s3)
+    encoding.should_receive(:upload_to_store)
     encoding.should_receive(:generate_thumbnail_selection)
     clipping = returning(mock(Clipping)) do |c|
       c.should_receive(:upload_to_store)
@@ -344,7 +367,7 @@ describe Video do
   it "should set the encoding's status to error if the video fails to encode correctly" do
     encoding = mock_encoding_flv_flash
     encoding.stub!(:parent_video).and_return(@video)
-    @video.should_receive(:fetch_from_s3)
+    @video.should_receive(:fetch_from_store)
   
     encoding.should_receive(:status=).with("processing")
     encoding.should_receive(:save).twice

@@ -83,7 +83,7 @@ describe Videos, "upload action" do
     Panda::Config[:choose_thumbnail] = false
     @video.should_receive(:valid?).and_return(true)
     @video.should_receive(:read_metadata).and_return(true)
-    @video.should_receive(:upload_to_s3).and_return(true)
+    @video.should_receive(:upload_to_store).and_return(true)
     @video.should_receive(:add_to_queue).and_return(true)
     @video.should_receive(:status=).with("original")
     @video.should_receive(:save)    
