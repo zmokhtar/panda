@@ -4,7 +4,7 @@ describe Clipping do
   
   before :each do
     @parent_video = mock(Video)
-    @video = mock(Video, :filename => "foo", :parent_video => @parent_video, :width => 10, :height => 20, :status => "success")
+    @video = mock(Video, :filename => "foo", :parent_video => @parent_video, :width => 10, :height => 20, :parent? => false)
     @clipping = Clipping.new(@video, 40)
   end
   
@@ -39,7 +39,7 @@ describe Clipping do
   
   describe "url" do
     it "should fetch url info from store" do
-      Store.should_receive(:url).with("#{@clipping.filename(:thumbnail, :default => true)}").
+      Store.should_receive(:url).with("#{@clipping.filename(:thumbnail)}").
         and_return('a')
       @clipping.url(:thumbnail).should == 'a'
     end

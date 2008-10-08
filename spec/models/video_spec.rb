@@ -390,6 +390,7 @@ describe Video do
   
     encoding.should_receive(:upload_to_store)
     encoding.should_receive(:generate_thumbnail_selection)
+    encoding.should_receive(:upload_thumbnail_selection)
     clipping = returning(mock(Clipping)) do |c|
       c.should_receive(:set_as_default)
     end

@@ -25,11 +25,21 @@ class Video < SimpleDB::Base
     Clipping.new(self, position)
   end
   
+  def clippings
+    self.thumbnail_percentages.map do |p|
+      Clipping.new(self, p)
+    end
+  end
+  
   # Classification
   # ==============
   
   def encoding?
     ['queued', 'processing', 'success', 'error'].include?(self.status)
+  end
+  
+  def parent?
+    ['original', 'empty'].include?(self.status)
   end
   
   # Finders
@@ -178,6 +188,11 @@ class Video < SimpleDB::Base
   # not exist.
   def delete_from_store
     Store.delete(self.filename)
+    self.clippings.each { |c| c.delete_from_store }
+    if self.encoding?
+      Store.delete(self.clipping.filename(:screenshot, :default => true))
+      Store.delete(self.clipping.filename(:thumbnail, :default => true))
+    end
   rescue AbstractStore::FileDoesNotExistError
     false
   end
@@ -201,6 +216,13 @@ class Video < SimpleDB::Base
     self.thumbnail_percentages.each do |percentage|
       self.clipping(percentage).capture
       self.clipping(percentage).resize
+    end
+  end
+  
+  def upload_thumbnail_selection
+    self.thumbnail_percentages.each do |percentage|
+      self.clipping(percentage).upload_to_store
+      self.clipping(percentage).delete_locally
     end
   end
   
@@ -553,6 +575,7 @@ RESPONSE
       self.upload_to_store
       self.generate_thumbnail_selection
       self.clipping.set_as_default
+      self.upload_thumbnail_selection
       
       self.notification = 0
       self.status = "success"

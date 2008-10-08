@@ -90,6 +90,7 @@ class Videos < Application
       # Generate thumbnails before we save so the encoder doesn't get there first and delete our file!
       if Panda::Config[:choose_thumbnail]
         @video.generate_thumbnail_selection
+        @video.upload_thumbnail_selection
       else
         @video.add_to_queue
       end

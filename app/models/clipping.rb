@@ -19,9 +19,14 @@ class Clipping
     return name.join('_') + '.jpg'
   end
   
-  # URL once it has been uploaded
+  # URL of clipping on store. If clipping was initialized without a position 
+  # then the default filename is used (without position) to generate the url
   def url(size)
-    Store.url(self.filename(size.to_sym, :default => true))
+    if @_position
+      Store.url(self.filename(size.to_sym))
+    else
+      Store.url(self.filename(size.to_sym, :default => true))
+    end
   end
   
   # URL on the panda instance (before it has been uploaded)
@@ -50,13 +55,26 @@ class Clipping
   
   # Uploads this clipping to the default clipping locations on store (default 
   # url does not contain position)
+  # 
+  # TODO: Refactor. It's complicated because you're not sure whether the 
+  # clipping is available locally before you start.
   def set_as_default
-    Store.set \
-      filename(:screenshot, :default => true), 
-      tmp_path(:screenshot)
-    Store.set \
-      filename(:thumbnail, :default => true), 
-      tmp_path(:thumbnail)
+    actual_operation = lambda {
+      Store.set \
+        filename(:screenshot, :default => true), 
+        tmp_path(:screenshot)
+      Store.set \
+        filename(:thumbnail, :default => true), 
+        tmp_path(:thumbnail)
+    }
+    
+    if File.exists?(tmp_path(:screenshot))
+      actual_operation.call
+    else
+      self.fetch_from_store
+      actual_operation.call
+      self.delete_locally
+    end
   end
   
   # Upload this clipping to store (with position info in the url)
@@ -69,6 +87,23 @@ class Clipping
       tmp_path(:thumbnail)
   end
   
+  def fetch_from_store
+    Store.get(filename(:screenshot), tmp_path(:screenshot))
+    Store.get(filename(:thumbnail), tmp_path(:thumbnail))
+  end
+  
+  def delete_locally
+    FileUtils.rm(tmp_path(:screenshot))
+    FileUtils.rm(tmp_path(:thumbnail))
+  end
+  
+  def delete_from_store
+    Store.delete(filename(:screenshot))
+    Store.delete(filename(:thumbnail))
+  rescue AbstractStore::FileDoesNotExistError
+    false
+  end
+  
   def changeable?
     Panda::Config[:choose_thumbnail] != false
   end
@@ -76,7 +111,7 @@ class Clipping
   private
   
   def original_video
-    (@video.status == 'original') ? @video : @video.parent_video
+    @video.parent? ? @video : @video.parent_video
   end
   
   def tmp_path(size)
