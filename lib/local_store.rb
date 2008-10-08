@@ -12,12 +12,20 @@ module LocalStore
   
   # This path can be accessible from the web
   def public_filepath(*args)
-    Panda::Config[:public_tmp_path] / args.map { |e| e.to_s }.join('_')
+    add_filename_to(:public_tmp_path, *args)
   end
   
   # URL on the panda instance (before it has been uploaded)
   def public_url(*args)
-    Panda::Config[:public_tmp_url] + '/' + args.map { |e| e.to_s }.join('_')
+    add_filename_to(:public_tmp_url, *args)
+  end
+  
+  def private_filepath(*args)
+    add_filename_to(:private_tmp_path, *args)
+  end
+  
+  def add_filename_to(option, *args)
+    Panda::Config[option] / args.map { |e| e.to_s }.join('_')
   end
   
 end

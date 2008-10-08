@@ -1,4 +1,7 @@
 class Video < SimpleDB::Base
+  
+  include LocalStore
+  
   set_domain Panda::Config[:sdb_videos_domain]
   properties :filename, :original_filename, :parent, :status, :duration, :container, :width, :height, :video_codec, :video_bitrate, :fps, :audio_codec, :audio_bitrate, :audio_sample_rate, :profile, :profile_title, :player, :queued_at, :started_encoding_at, :encoding_time, :encoded_at, :last_notification_at, :notification, :updated_at, :created_at, :thumbnail_position
   
@@ -94,7 +97,7 @@ class Video < SimpleDB::Base
 
   # Location to store video file fetched from S3 for encoding
   def tmp_filepath
-    Panda::Config[:private_tmp_path] / self.filename
+    private_filepath(self.filename)
   end
   
   # Has the actual video file been uploaded for encoding?

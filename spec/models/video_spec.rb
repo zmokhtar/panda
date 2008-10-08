@@ -104,6 +104,9 @@ describe Video do
   end
     
   it "tmp_filepath" do
+    @video.should_receive(:private_filepath).with('abc.mov').
+      and_return('/tmp/abc.mov')
+    
     @video.tmp_filepath.should == '/tmp/abc.mov'
   end
 
