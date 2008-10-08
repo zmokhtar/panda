@@ -54,9 +54,6 @@ class Videos < Application
     @video = Video.create_empty
     Merb.logger.info "#{@video.key}: Created video"
     
-    # TODO: Explain what this is for!
-    sleep 2
-
     case content_type
     when :html
       redirect url(:form_video, @video.key)
