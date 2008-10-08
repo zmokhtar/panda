@@ -1,5 +1,13 @@
 module LocalStore
   
+  def self.ensure_directories_exist
+    private_dir = Panda::Config[:private_tmp_path]
+    public_dir  = Panda::Config[:public_tmp_path]
+    
+    FileUtils.mkdir_p(private_dir)
+    FileUtils.mkdir_p(public_dir)
+  end
+  
   private
   
   # This path can be accessible from the web

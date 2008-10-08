@@ -54,6 +54,8 @@ Merb::BootLoader.after_app_loads do
   else
     raise RuntimeError, "You have specified an invalid videos_store configuration option. Valid options are :s3 and :filesystem"
   end
+  
+  LocalStore.ensure_directories_exist
 end
 
 EMAIL_SENDER = "Panda <info@pandastream.com>"
