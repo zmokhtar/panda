@@ -36,7 +36,7 @@ describe Thumbnail do
       @video.stub!(:save)
       
       @clipping = mock(Clipping)
-      @clipping.stub!(:upload_to_store)
+      @clipping.stub!(:set_as_default)
       @encoding = mock(Video)
       @encoding.stub!(:clipping).and_return(@clipping)
       @video.stub!(:successful_encodings).and_return([@encoding])
@@ -50,7 +50,7 @@ describe Thumbnail do
     end
 
     it "should upload clipping to store" do
-      @clipping.should_receive(:upload_to_store)
+      @clipping.should_receive(:set_as_default)
       
       dispatch
     end

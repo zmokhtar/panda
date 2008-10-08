@@ -40,7 +40,7 @@ class Thumbnail < Application
     @video.save
     
     @video.successful_encodings.each do | video |
-      video.clipping.upload_to_store
+      video.clipping.set_as_default
     end
     
     redirect url(:video, @video.key)

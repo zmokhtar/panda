@@ -21,8 +21,8 @@ class Video < SimpleDB::Base
     'videos'
   end
   
-  def clipping
-    Clipping.new(self)
+  def clipping(position = nil)
+    Clipping.new(self, position)
   end
   
   # Classification
@@ -199,8 +199,8 @@ class Video < SimpleDB::Base
   
   def generate_thumbnail_selection
     self.thumbnail_percentages.each do |percentage|
-      self.clipping.capture(percentage)
-      self.clipping.resize(percentage)
+      self.clipping(percentage).capture
+      self.clipping(percentage).resize
     end
   end
   
@@ -552,7 +552,7 @@ RESPONSE
       
       self.upload_to_store
       self.generate_thumbnail_selection
-      self.clipping.upload_to_store
+      self.clipping.set_as_default
       
       self.notification = 0
       self.status = "success"
