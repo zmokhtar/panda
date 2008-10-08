@@ -179,13 +179,19 @@ class Video < SimpleDB::Base
     false
   end
   
+  # Returns configured number of 'middle points', for example [25,50,75]
   def thumbnail_percentages
-    choose_thumbnail = Panda::Config[:choose_thumbnail]
+    n = Panda::Config[:choose_thumbnail]
     
-    return [self.default_thumbnail_position] if choose_thumbnail == false
+    return [50] if n == false
     
-    divider = 100.0 / (choose_thumbnail + 2).to_f
-    percentages = (1..choose_thumbnail).map {|i| i * divider }
+    # Interval length
+    interval = 100.0 / (n + 1)
+    # Points is [0,25,50,75,100] for example
+    points = (0..(n + 1)).map { |p| p * interval }
+    
+    # Don't include the end points
+    return points[1..-2]
   end
   
   def generate_thumbnail_selection

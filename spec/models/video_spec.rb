@@ -184,6 +184,46 @@ describe Video do
     end
   end
   
+  describe "thumbnail_percentages should generate list of percentages" do
+    it "should default to [50] if config option not set" do
+      Panda::Config[:choose_thumbnail] = false
+      @video.thumbnail_percentages.should == [50]
+    end
+    
+    it "should be [50] if 1 thumbnail" do
+      Panda::Config[:choose_thumbnail] = 1
+      @video.thumbnail_percentages.should == [50]
+    end
+    
+    it "should be [25, 50, 75] if 3 thumbnails" do
+      Panda::Config[:choose_thumbnail] = 3
+      @video.thumbnail_percentages.should == [25, 50, 75]
+    end
+    
+    it "should be [20,40,60,80] if 4 thumbnails" do
+      Panda::Config[:choose_thumbnail] = 4
+      @video.thumbnail_percentages.should == [20,40,60,80]
+    end
+  end
+  
+  describe "generate_thumbnail_selection" do
+    before :each do
+      @clipping = mock(Clipping, :capture => true, :resize => true)
+      @video.stub!(:clipping).and_return(@clipping)
+      @video.stub!(:thumbnail_percentages).and_return([25,50,75])
+    end
+    
+    it "should capture for each thumbnail options" do
+      @clipping.should_receive(:capture).exactly(3).times
+      @video.generate_thumbnail_selection
+    end
+    
+    it "should resize for each thumbnail option" do
+      @clipping.should_receive(:resize).exactly(3).times
+      @video.generate_thumbnail_selection
+    end
+  end
+  
   # Uploads
   # =======
   
