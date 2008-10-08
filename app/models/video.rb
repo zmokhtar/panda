@@ -206,7 +206,7 @@ class Video < SimpleDB::Base
     # Interval length
     interval = 100.0 / (n + 1)
     # Points is [0,25,50,75,100] for example
-    points = (0..(n + 1)).map { |p| p * interval }
+    points = (0..(n + 1)).map { |p| p * interval }.map { |p| p.to_i }
     
     # Don't include the end points
     return points[1..-2]
