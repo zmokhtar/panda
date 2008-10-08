@@ -19,7 +19,7 @@ class S3Store < AbstractStore
         S3VideoObject.store(key, File.open(tmp_file), :access => :public_read)
         sleep 3
       end
-    rescue
+    rescue AWS::S3::S3Exception
       Merb.logger.error "Error uploading #{key} to S3"
       raise
     else
@@ -37,7 +37,7 @@ class S3Store < AbstractStore
         end
         sleep 3
       end
-    rescue
+    rescue AWS::S3::S3Exception
       raise_file_error(key)
     else
       true
@@ -49,10 +49,10 @@ class S3Store < AbstractStore
     begin
       retryable(:tries => 5) do
         Merb.logger.info "Deleting #{key} from S3"
-        S3VideoObject.delete(self.filename)
+        S3VideoObject.delete(key)
         sleep 3
       end
-    rescue
+    rescue AWS::S3::S3Exception
       raise_file_error(key)
     else
       true

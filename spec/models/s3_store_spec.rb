@@ -57,9 +57,20 @@ describe S3Store do
   end
   
   describe "delete" do
-    it "should delete from S3"
+    it "should delete from S3" do
+      S3VideoObject.should_receive(:delete).with('abc.mov')
+      
+      @store.delete('abc.mov')
+    end
     
-    it "should retry deleting up to 6 times and raise exception on fail"
+    it "should retry deleting up to 6 times and raise exception on fail" do
+      S3VideoObject.should_receive(:delete).exactly(6).times.
+        with('abc.mov').and_raise(AWS::S3::S3Exception)
+      
+      lambda {
+        @store.delete('abc.mov')
+      }.should raise_error(AbstractStore::FileDoesNotExistError)
+    end
   end
   
   describe "url" do
