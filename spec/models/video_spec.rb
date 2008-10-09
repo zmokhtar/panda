@@ -287,10 +287,16 @@ describe Video do
   describe "finish_processing_and_queue_encodings" do
     
     before(:each) do
+      @clipping = mock(Clipping, {
+        :set_as_default => true, :changeable? => true
+      })
+      
       @video.status = 'original'
       @video.stub!(:upload_to_store)
       @video.stub!(:generate_thumbnail_selection)
+      @video.stub!(:clipping).and_return(@clipping)
       @video.stub!(:upload_thumbnail_selection)
+      @video.stub!(:save)
       @video.stub!(:add_to_queue)
       @video.stub!(:tmp_filepath).and_return('tmpfile')
       FileUtils.stub!(:rm)
@@ -301,11 +307,23 @@ describe Video do
       @video.finish_processing_and_queue_encodings
     end
     
-    it "should generate and upload thumbnails if option set" do
-      Panda::Config[:choose_thumbnail] = 2
-      @video.should_receive(:generate_thumbnail_selection).and_return(true)
-      @video.should_receive(:upload_thumbnail_selection).and_return(true)
-      @video.finish_processing_and_queue_encodings
+    describe "if clipping can be changed" do
+      it "should generate and upload clippings" do
+        Panda::Config[:choose_thumbnail] = 2
+        @video.should_receive(:generate_thumbnail_selection).and_return(true)
+        @video.should_receive(:upload_thumbnail_selection).and_return(true)
+        @video.finish_processing_and_queue_encodings
+      end
+      
+      it "should set the default clipping position" do
+        @video.should_receive(:thumbnail_position=)
+        @video.finish_processing_and_queue_encodings
+      end
+      
+      it "should upload default clipping" do
+        @clipping.should_receive(:set_as_default)
+        @video.finish_processing_and_queue_encodings
+      end
     end
     
     it "should add encodings to queue" do

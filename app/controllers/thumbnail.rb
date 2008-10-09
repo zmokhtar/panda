@@ -38,6 +38,7 @@ class Thumbnail < Application
   def update
     @video.thumbnail_position = params[:percentage]
     @video.save
+    @video.clipping.set_as_default
     
     @video.successful_encodings.each do | video |
       video.clipping.set_as_default

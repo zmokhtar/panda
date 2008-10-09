@@ -189,10 +189,8 @@ class Video < SimpleDB::Base
   def delete_from_store
     Store.delete(self.filename)
     self.clippings.each { |c| c.delete_from_store }
-    if self.encoding?
-      Store.delete(self.clipping.filename(:screenshot, :default => true))
-      Store.delete(self.clipping.filename(:thumbnail, :default => true))
-    end
+    Store.delete(self.clipping.filename(:screenshot, :default => true))
+    Store.delete(self.clipping.filename(:thumbnail, :default => true))
   rescue AbstractStore::FileDoesNotExistError
     false
   end
@@ -263,7 +261,11 @@ class Video < SimpleDB::Base
     # Generate thumbnails before we add to encoding queue
     if self.clipping.changeable?
       self.generate_thumbnail_selection
+      self.clipping(self.thumbnail_percentages.first).set_as_default
       self.upload_thumbnail_selection
+      
+      self.thumbnail_position = self.thumbnail_percentages.first
+      self.save
     end
     
     self.add_to_queue
