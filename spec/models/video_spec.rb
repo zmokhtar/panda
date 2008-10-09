@@ -230,14 +230,93 @@ describe Video do
   # Uploads
   # =======
   
-  it "valid? should raise NotValid if video is not empty" do
-    @video.status = 'original'
-    lambda {@video.valid?}.should raise_error(Video::NotValid)
+  describe "initial_processing" do
+    before(:each) do
+      @tempfile = mock(File, :filename => "tmpfile", :path => "/tump/tmpfile")
+      
+      @file = Mash.new({"content_type"=>"video/mp4", "size"=>100, "tempfile" => @tempfile, "filename" => "file.mov"})
+      @video.status = 'empty'
+      
+      FileUtils.stub!(:mv)
+      @video.stub!(:read_metadata)
+      @video.stub!(:save)
+    end
+    
+    it "should raise NotValid if video is not empty" do
+      @video.status = 'original'
+      
+      lambda {
+        @video.initial_processing(@file)
+      }.should raise_error(Video::NotValid)
+      
+      @video.status = 'empty'
+      
+      lambda {
+        @video.initial_processing(@file)
+      }.should_not raise_error(Video::NotValid)
+    end
+    
+    it "should set filename and original_filename" do
+      @video.should_receive(:key).and_return('1234')
+      @video.should_receive(:filename=).with("1234.mov")
+      @video.should_receive(:original_filename=).with("file.mov")
+      
+      @video.initial_processing(@file)
+    end
+    
+    it "should move file to tempoary location" do
+      FileUtils.should_receive(:mv).with("/tump/tmpfile", "/tmp/abc.mov")
+      
+      @video.initial_processing(@file)
+    end
+    
+    it "should read metadata" do
+      @video.should_receive(:read_metadata).and_return(true)
+      
+      @video.initial_processing(@file)
+    end
+    
+    it "should save video" do
+      @video.should_receive(:status=).with("original")
+      @video.should_receive(:save)
+      
+      @video.initial_processing(@file)
+    end
   end
   
-  it "valid? should return true if video is empty" do
-    @video.status = 'empty'
-    @video.valid?.should be_true
+  describe "finish_processing_and_queue_encodings" do
+    
+    before(:each) do
+      @video.status = 'original'
+      @video.stub!(:upload_to_store)
+      @video.stub!(:generate_thumbnail_selection)
+      @video.stub!(:upload_thumbnail_selection)
+      @video.stub!(:add_to_queue)
+      @video.stub!(:tmp_filepath).and_return('tmpfile')
+      FileUtils.stub!(:rm)
+    end
+    
+    it "should upload original to store" do
+      @video.should_receive(:upload_to_store).and_return(true)
+      @video.finish_processing_and_queue_encodings
+    end
+    
+    it "should generate and upload thumbnails if option set" do
+      Panda::Config[:choose_thumbnail] = 2
+      @video.should_receive(:generate_thumbnail_selection).and_return(true)
+      @video.should_receive(:upload_thumbnail_selection).and_return(true)
+      @video.finish_processing_and_queue_encodings
+    end
+    
+    it "should add encodings to queue" do
+      @video.should_receive(:add_to_queue).and_return(true)
+      @video.finish_processing_and_queue_encodings
+    end
+    
+    it "should clean up original video" do
+      FileUtils.should_receive(:rm).and_return(true)
+      @video.finish_processing_and_queue_encodings
+    end
   end
   
   # def read_metadata

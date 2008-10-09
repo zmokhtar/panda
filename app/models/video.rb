@@ -226,27 +226,67 @@ class Video < SimpleDB::Base
     end
   end
   
-  # Uploads
-  # =======
-
-
-  def valid?
+  # Checks that video can accept new file, checks that the video is valid, 
+  # reads some metadata from it, and moves video into a private tmp location.
+  # 
+  # File is the tempfile object supplied by merb. It looks like
+  # {
+  #   "content_type"=>"video/mp4", 
+  #   "size"=>100, 
+  #   "tempfile" => @tempfile, 
+  #   "filename" => "file.mov"
+  # }
+  # 
+  def initial_processing(file)
+    raise NoFileSubmitted if !file || file.blank?
     raise NotValid unless self.empty?
-    return true
+    
+    # Set filename and original filename
+    self.filename = self.key + File.extname(file[:filename])
+    # Split out any directory path Windows adds in
+    self.original_filename = file[:filename].split("\\\\").last
+    
+    # Move file into tmp location
+    FileUtils.mv file[:tempfile].path, self.tmp_filepath
+    
+    self.read_metadata
+    self.status = "original"
+    self.save
   end
   
+  # Uploads video to store, generates thumbnails if required, cleans up 
+  # tempoary file, and adds encodings to the encoding queue.
+  # 
+  def finish_processing_and_queue_encodings
+    self.upload_to_store
+
+    # Generate thumbnails before we add to encoding queue
+    if self.clipping.changeable?
+      self.generate_thumbnail_selection
+      self.upload_thumbnail_selection
+    end
+    
+    self.add_to_queue
+    
+    FileUtils.rm self.tmp_filepath
+  end
+  
+  # Reads information about the video into attributes.
+  # 
+  # Raises FormatNotRecognised if the video is not valid
+  # 
   def read_metadata
     Merb.logger.info "#{self.key}: Reading metadata of video file"
     
     inspector = RVideo::Inspector.new(:file => self.tmp_filepath)
-
+    
     raise FormatNotRecognised unless inspector.valid? and inspector.video?
-
+    
     self.duration = (inspector.duration rescue nil)
     self.container = (inspector.container rescue nil)
     self.width = (inspector.width rescue nil)
     self.height = (inspector.height rescue nil)
-
+    
     self.video_codec = (inspector.video_codec rescue nil)
     self.video_bitrate = (inspector.bitrate rescue nil)
     self.fps = (inspector.fps rescue nil)
@@ -254,8 +294,8 @@ class Video < SimpleDB::Base
     self.audio_codec = (inspector.audio_codec rescue nil)
     self.audio_sample_rate = (inspector.audio_sample_rate rescue nil)
     
-    raise FormatNotRecognised if self.duration == 0 # Don't allow videos with a duration of 0
-    # raise FormatNotRecognised if self.width.nil? or self.height.nil? # Little final check we actually have some usable video
+    # Don't allow videos with a duration of 0
+    raise FormatNotRecognised if self.duration == 0
   end
   
   def create_encoding_for_profile(p)

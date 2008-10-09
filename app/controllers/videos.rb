@@ -74,54 +74,28 @@ class Videos < Application
   # Use: HQ, http/iframe upload
   def upload
     begin
-      raise Video::NoFileSubmitted if !params[:file] || params[:file].blank?
       @video = Video.find(params[:id])
-      @video.filename = @video.key + File.extname(params[:file][:filename])
-      FileUtils.mv params[:file][:tempfile].path, @video.tmp_filepath
-      @video.original_filename = params[:file][:filename].split("\\\\").last # Split out any directory path Windows adds in
-      # @video.process
-      @video.valid?
-      @video.read_metadata
-      @video.status = "original"
-      @video.save
-    rescue Amazon::SDB::RecordNotFoundError # No empty video object exists
+      @video.initial_processing(params[:file])
+    rescue Amazon::SDB::RecordNotFoundError
+      # No empty video object exists
       self.status = 404
       render_error($!.to_s.gsub(/Amazon::SDB::/,""))
-    rescue Video::NotValid # Video object is not empty. It's likely a video has already been uploaded for this object.
+    rescue Video::NotValid
+      # Video object is not empty. Likely a video has already been uploaded.
       self.status = 404
       render_error($!.to_s.gsub(/Video::/,""))
     rescue Video::VideoError
+      # Generic Video error
       self.status = 500
       render_error($!.to_s.gsub(/Video::/,""))
     rescue => e
+      # Other error
       self.status = 500
-      render_error("InternalServerError", e) # TODO: Use this generic error in production
+      render_error("InternalServerError", e)
     else
-      case content_type
-      when :html  
-        url = @video.upload_redirect_url
-        
-        # Special internal Panda case: textarea hack to get around the fact that the form is submitted with a hidden iframe and thus the response is rendered in the iframe
-        if params[:iframe] == "true"
-          html = "<textarea>" + {:location => url}.to_json + "</textarea>"
-          
-          render_then_call html do
-            @video.upload_to_store
-
-            # Generate thumbnails before we add to encoding queue
-            if Panda::Config[:choose_thumbnail]
-              @video.generate_thumbnail_selection
-              @video.upload_thumbnail_selection
-            end
-            
-            @video.add_to_queue
-            
-            FileUtils.rm @video.tmp_filepath
-          end
-        else
-          # Need redirect then call
-          redirect url
-        end
+      redirect_url = @video.upload_redirect_url
+      render_then_call(iframe_params(:location => redirect_url)) do
+        @video.finish_processing_and_queue_encodings
       end
     end
   end
@@ -145,7 +119,7 @@ private
     case content_type
     when :html
       if params[:iframe] == "true"
-        "<textarea>" + {:error => msg}.to_json + "</textarea>"
+        iframe_params(:error => msg)
       else
         @exception = msg
         render(:template => "exceptions/video_exception", :layout => false) # TODO: Why is :action setting 404 instead of 500?!?!
@@ -169,5 +143,11 @@ private
       self.status = 404
       throw :halt, render_error($!.to_s.gsub(/Amazon::SDB::/,""))
     end
+  end
+  
+  # Textarea hack to get around the fact that the form is submitted with a 
+  # hidden iframe and thus the response is rendered in the iframe.
+  def iframe_params(options)
+    "<textarea>" + options.to_json + "</textarea>"
   end
 end

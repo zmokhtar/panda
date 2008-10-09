@@ -50,56 +50,45 @@ end
 
 describe Videos, "upload action" do
   before(:each) do
-    @video = Video.new
-    @video.key = 'abc'
-    @video.filename = 'abc.avi'
-    
-    Panda::Config.use do |p|
-      p[:private_tmp_path] = '/tmp'
-      p[:state_update_url] = "http://localhost:4000/videos/$id/status"
-      p[:upload_redirect_url] = "http://localhost:4000/videos/$id/done"
-      p[:videos_domain] = "videos.pandastream.com"
-    end
-    
-    class S3VideoObject; end
+    @video = mock(Video, {
+      :key => "abc", 
+      :filename => "abc.avi", 
+      :upload_redirect_url => "http://localhost:4000/videos/abc/done"
+    })
     
     @video_upload_url = "/videos/abc/upload.html"
-    @video_upload_params = {:file => File.open(File.join( File.dirname(__FILE__), "video.avi"))}
-  end
-  
-  def setup_video
-    # First part of action
+    @video_upload_params = {
+      :file => File.open(File.join( File.dirname(__FILE__), "video.avi"))
+    }
     
     Video.stub!(:find).with("abc").and_return(@video)
-    @video.should_receive(:filename=).with("abc.avi")
-    FileUtils.should_receive(:mv).with(an_instance_of(String), "/tmp/abc.avi")
-    @video.should_receive(:original_filename=).with("video.avi")
     
-    # Next @video.process is called, this is where the interesting stuff happens, errors raised etc...
+    @video.stub!(:initial_processing)
   end
   
-  it "should process valid video and add to queue if choose_thumbnail option is not set" do
-    setup_video
-    Panda::Config[:choose_thumbnail] = false
-    @video.should_receive(:valid?).and_return(true)
-    @video.should_receive(:read_metadata).and_return(true)
-    @video.should_receive(:upload_to_store).and_return(true)
-    @video.should_receive(:add_to_queue).and_return(true)
-    @video.should_receive(:status=).with("original")
-    @video.should_receive(:save)    
-    FileUtils.should_receive(:rm).and_return(true)
-    @c = multipart_post(@video_upload_url, @video_upload_params) do |controller|
-      controller.should_receive(:redirect).with("http://localhost:4000/videos/abc/done")
+  it "should run initial processing" do
+    @video.should_receive(:initial_processing)
+    multipart_post(@video_upload_url, @video_upload_params) do |c|
+      c.stub!(:render_then_call)
     end
   end
   
-  it "should redirect to choose_thumbnail page without adding to queue if choose_thumbnail option"
+  it "should redirect (via iframe hack)" do
+    multipart_post(@video_upload_url, @video_upload_params) do |c|
+      c.should_receive(:render_then_call).with("<textarea>{\"location\": \"http://localhost:4000/videos/abc/done\"}</textarea>")
+      c.should be_successful
+    end
+  end
+  
+  it "should run finish_processing_and_queue_encodings after response" do
+    pending
+    # TODO: How can we test what's called in a render_then_call block
+  end
     
   # Video::NotValid / 404
   
   it "should return 404 when processing fails with Video::NotValid" do 
-    setup_video
-    @video.should_receive(:valid?).and_raise(Video::NotValid)
+    @video.should_receive(:initial_processing).and_raise(Video::NotValid)
     @c = multipart_post(@video_upload_url, @video_upload_params)
     @c.body.should match(/NotValid/)
     @c.status.should == 404
@@ -117,7 +106,9 @@ describe Videos, "upload action" do
   # Videos::NoFileSubmitted
   
   it "should raise Video::NoFileSubmitted and return 500 if no file parameter is posted" do
-    @c = post("/videos/abc/upload.html")
+    @video.should_receive(:initial_processing).with(nil).
+      and_raise(Video::NoFileSubmitted)
+    @c = post(@video_upload_url)
     @c.body.should match(/NoFileSubmitted/)
     @c.status.should == 500
   end
@@ -140,50 +131,10 @@ describe Videos, "upload action" do
   
   # Test iframe=true option with InternalServerError
   
-  it "should reutrn error json inside a <textarea>" do
+  it "should return error json inside a <textarea> if iframe option is set" do
     Video.stub!(:find).with("abc").and_raise(RuntimeError)
     @c = multipart_post(@video_upload_url, @video_upload_params.merge({:iframe => true}))
-    puts @c.body
     @c.body.should == %(<textarea>{"error": "InternalServerError"}</textarea>)
     @c.status.should == 500
   end
-  
-  # it "should return 200, add video to queue and set location header" do
-  #   setup_video
-  #   Video.should_receive(:find_by_token).with("123").and_return(@video)
-  #   @video.stub!(:account).and_return(OpenStruct.new(:upload_redirect_url => "http://mysite.com/videos/done"))
-  #   
-  #   post("/videos/123/uploaded.yaml", {:filename => "vid.avi", :metadata => {:metadata => :here}.to_yaml})
-  #   status.should == 200
-  #   headers['Location'].should == "http://mysite.com/videos/done"
-  # end
-  
-  # it "should return 200, add video to queue but not set location header if account.upload_redirect_url is blank" do
-  #   setup_video
-  #   Video.should_receive(:find_by_token).with("123").and_return(@video)
-  #   @video.stub!(:account).and_return(OpenStruct.new(:upload_redirect_url => ""))
-  #   
-  #   post("/videos/123/uploaded.yaml", {:filename => "vid.avi", :metadata => {:metadata => :here}.to_yaml})
-  #   status.should == 200
-  #   headers['Location'].should_not == "http://mysite.com/videos/done"
-  # end
-  
-  # it "should return 404 if video is not empty" do
-  #   @video.should_receive(:empty?).and_return(false)
-  #   Video.should_receive(:find_by_token).with("123").and_return(@video)
-  #   post("/videos/123/uploaded.yaml")
-  #   status.should == 404
-  # end
-end
-
-describe Videos, "choose thumbnail action" do
-  it "should have spec"
-end
-
-describe Videos, "save thumbnail action" do
-  it "should have spec"
-end
-
-describe Videos, "upload through iframe" do
-  it "should have spec"
 end
