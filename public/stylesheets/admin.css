@@ -235,6 +235,11 @@ table.videos .success {
   height: 125px;
 }
 
+.thumb img {
+	display: block;
+	margin: 0 auto;
+}
+
 /* ACCOUNT */
 
 .account_details h3 {
