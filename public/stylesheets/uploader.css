@@ -43,3 +43,19 @@ body {
   color: #999;
   clear: left;
 }
+
+/* CHOOSE THUMBNAIL */
+
+#screenshots li {
+  list-style-type: none;
+  float: left;
+  border: 1px solid #ddd;
+  margin: 5px;
+}
+#screenshots li a {
+  display: block;
+  padding: 5px;
+}
+#screenshots li a:hover {
+  background: #eee;
+}
