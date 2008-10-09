@@ -6,7 +6,13 @@ Panda::Config.use do |p|
   p[:upload_redirect_url]    = "http://localhost:4000/videos/$id/done"
   p[:state_update_url]       = "http://localhost:4000/videos/$id/status_update"
   
-  p[:tmp_video_dir]          = "/var/tmp/videos"
+  # =====================================================
+  # Local storage. Public is accessible from the internet
+  # =====================================================
+  
+  p[:private_tmp_path]      = "/var/tmp/videos"
+  p[:public_tmp_path]       = # '/var/www/images'
+  p[:public_tmp_url]        = # 'http://images.app.com'
   
   # ================================================
   # Storage location for uploaded and encoded videos
@@ -15,7 +21,7 @@ Panda::Config.use do |p|
   # For S3 storage:
   p[:videos_store]          = :s3
   # For example "s3.amazonaws.com/myvideosbucket" or a FQDN if configured
-  p[:videos_domain]          = ""
+  p[:videos_domain]         = ""
   
   # For local filesystem storage:
   # p[:videos_store]          = :filesystem
@@ -30,6 +36,9 @@ Panda::Config.use do |p|
   p[:sdb_profiles_domain]    = "panda_profiles"
   
   p[:thumbnail_height_constrain] = 125
+  # Number of thumbnails you can choose from after uploading video.
+  # If you do not set this value, thumbnail selection will be ignored. 
+  # p[:choose_thumbnail]       = 6 
   
   p[:notification_retries] = 6 # How many times should a failed notification be retried?
   p[:notification_frequency] = 2 # How many

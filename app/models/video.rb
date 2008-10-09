@@ -1,13 +1,34 @@
 class Video < SimpleDB::Base
+  
+  include LocalStore
+  
   set_domain Panda::Config[:sdb_videos_domain]
-  properties :filename, :original_filename, :parent, :status, :duration, :container, :width, :height, :video_codec, :video_bitrate, :fps, :audio_codec, :audio_bitrate, :audio_sample_rate, :profile, :profile_title, :player, :queued_at, :started_encoding_at, :encoding_time, :encoded_at, :last_notification_at, :notification, :updated_at, :created_at
+  properties :filename, :original_filename, :parent, :status, :duration, :container, :width, :height, :video_codec, :video_bitrate, :fps, :audio_codec, :audio_bitrate, :audio_sample_rate, :profile, :profile_title, :player, :queued_at, :started_encoding_at, :encoding_time, :encoded_at, :last_notification_at, :notification, :updated_at, :created_at, :thumbnail_position
   
   # TODO: state machine for status
   # An original video can either be 'empty' if it hasn't had the video file uploaded, or 'original' if it has
   # An encoding will have it's original attribute set to the key of the original parent, and a status of 'queued', 'processing', 'success', or 'error'
   
+  def self.create_empty
+    video = Video.create
+    video.status = 'empty'
+    video.save
+    
+    return video
+  end
+  
   def to_sym
     'videos'
+  end
+  
+  def clipping(position = nil)
+    Clipping.new(self, position)
+  end
+  
+  def clippings
+    self.thumbnail_percentages.map do |p|
+      Clipping.new(self, p)
+    end
   end
   
   # Classification
@@ -15,6 +36,10 @@ class Video < SimpleDB::Base
   
   def encoding?
     ['queued', 'processing', 'success', 'error'].include?(self.status)
+  end
+  
+  def parent?
+    ['original', 'empty'].include?(self.status)
   end
   
   # Finders
@@ -58,6 +83,10 @@ class Video < SimpleDB::Base
     self.class.query("['parent' = '#{self.key}']")
   end
   
+  def successful_encodings
+    self.class.query("['parent' = '#{self.key}'] intersection ['status' = 'success']")
+  end
+  
   def find_encoding_for_profile(p)
     self.class.query("['parent' = '#{self.key}'] intersection ['profile' = '#{p.key}']")
   end
@@ -67,17 +96,18 @@ class Video < SimpleDB::Base
   
   # Delete an original video and all it's encodings.
   def obliterate!
-    self.delete_from_s3
+    # TODO: should this raise an exception if the file does not exist?
+    self.delete_from_store
     self.encodings.each do |e|
-      e.delete_from_s3
+      e.delete_from_store
       e.destroy!
     end
     self.destroy!
   end
-  
+
   # Location to store video file fetched from S3 for encoding
   def tmp_filepath
-    Panda::Config[:tmp_video_dir] / self.filename
+    private_filepath(self.filename)
   end
   
   # Has the actual video file been uploaded for encoding?
@@ -110,22 +140,6 @@ class Video < SimpleDB::Base
     self.audio_bitrate.to_i * 1024
   end
   
-  def screenshot
-    self.filename + ".jpg"
-  end
-  
-  def thumbnail
-    self.filename + "_thumb.jpg"
-  end
-  
-  def screenshot_url
-    Store.url(self.screenshot)
-  end
-  
-  def thumbnail_url
-    Store.url(self.thumbnail)
-  end
-  
   # Encding attr helpers
   # ====================
   
@@ -135,7 +149,7 @@ class Video < SimpleDB::Base
   
   def embed_html
     return nil unless self.encoding?
-    %(<embed src="#{Store.url('flvplayer.swf')}" width="#{self.width}" height="#{self.height}" allowfullscreen="true" allowscriptaccess="always" flashvars="&displayheight=#{self.height}&file=#{self.url}&width=#{self.width}&height=#{self.height}&image=#{self.screenshot_url}" />)
+    %(<embed src="#{Store.url('flvplayer.swf')}" width="#{self.width}" height="#{self.height}" allowfullscreen="true" allowscriptaccess="always" flashvars="&displayheight=#{self.height}&file=#{self.url}&width=#{self.width}&height=#{self.height}&image=#{self.clipping.url(:screenshot)}" />)
   end
   
   def embed_js
@@ -146,7 +160,7 @@ class Video < SimpleDB::Base
       var flashvars = {};
       
       flashvars.file = "#{self.url}";
-      flashvars.image = "#{self.screenshot_url}";
+      flashvars.image = "#{self.clipping.url(:screenshot)}";
       flashvars.width = "#{self.width}";
       flashvars.height = "#{self.height}";
       flashvars.fullscreen = "true";
@@ -159,69 +173,122 @@ class Video < SimpleDB::Base
   	)
 	end
   
-  # S3
-  # ==
+  # Interaction with store
+  # ======================
   
-  def upload_to_s3
+  def upload_to_store
     Store.set(self.filename, self.tmp_filepath)
   end
   
-  def fetch_from_s3
+  def fetch_from_store
     Store.get(self.filename, self.tmp_filepath)
   end
   
   # Deletes the video file without raising an exception if the file does 
   # not exist.
-  def delete_from_s3
+  def delete_from_store
     Store.delete(self.filename)
+    self.clippings.each { |c| c.delete_from_store }
+    Store.delete(self.clipping.filename(:screenshot, :default => true))
+    Store.delete(self.clipping.filename(:thumbnail, :default => true))
   rescue AbstractStore::FileDoesNotExistError
     false
   end
   
-  def capture_thumbnail_and_upload_to_s3
-    screenshot_tmp_filepath = self.tmp_filepath + ".jpg"
-    thumbnail_tmp_filepath = self.tmp_filepath + "_thumb.jpg"
+  # Returns configured number of 'middle points', for example [25,50,75]
+  def thumbnail_percentages
+    n = Panda::Config[:choose_thumbnail]
     
-    t = RVideo::Inspector.new(:file => self.tmp_filepath)
-    t.capture_frame('50%', screenshot_tmp_filepath)
+    return [50] if n == false
     
-    constrain_to_height = Panda::Config[:thumbnail_height_constrain].to_f
-    width = (self.width.to_f/(self.height.to_f/constrain_to_height)).to_i
-    height = constrain_to_height.to_i
+    # Interval length
+    interval = 100.0 / (n + 1)
+    # Points is [0,25,50,75,100] for example
+    points = (0..(n + 1)).map { |p| p * interval }.map { |p| p.to_i }
     
-    GDResize.new.resize(screenshot_tmp_filepath, thumbnail_tmp_filepath, [width,height])
-    
-    Store.set(self.screenshot, screenshot_tmp_filepath)
-    Store.set(self.thumbnail, thumbnail_tmp_filepath)
+    # Don't include the end points
+    return points[1..-2]
   end
   
-  # Uploads
-  # =======
-  
-  def process
-    self.valid?
-    self.read_metadata
-    self.upload_to_s3
-    self.add_to_queue
+  def generate_thumbnail_selection
+    self.thumbnail_percentages.each do |percentage|
+      self.clipping(percentage).capture
+      self.clipping(percentage).resize
+    end
   end
   
-  def valid?
+  def upload_thumbnail_selection
+    self.thumbnail_percentages.each do |percentage|
+      self.clipping(percentage).upload_to_store
+      self.clipping(percentage).delete_locally
+    end
+  end
+  
+  # Checks that video can accept new file, checks that the video is valid, 
+  # reads some metadata from it, and moves video into a private tmp location.
+  # 
+  # File is the tempfile object supplied by merb. It looks like
+  # {
+  #   "content_type"=>"video/mp4", 
+  #   "size"=>100, 
+  #   "tempfile" => @tempfile, 
+  #   "filename" => "file.mov"
+  # }
+  # 
+  def initial_processing(file)
+    raise NoFileSubmitted if !file || file.blank?
     raise NotValid unless self.empty?
-    return true
+    
+    # Set filename and original filename
+    self.filename = self.key + File.extname(file[:filename])
+    # Split out any directory path Windows adds in
+    self.original_filename = file[:filename].split("\\\\").last
+    
+    # Move file into tmp location
+    FileUtils.mv file[:tempfile].path, self.tmp_filepath
+    
+    self.read_metadata
+    self.status = "original"
+    self.save
   end
   
+  # Uploads video to store, generates thumbnails if required, cleans up 
+  # tempoary file, and adds encodings to the encoding queue.
+  # 
+  def finish_processing_and_queue_encodings
+    self.upload_to_store
+
+    # Generate thumbnails before we add to encoding queue
+    if self.clipping.changeable?
+      self.generate_thumbnail_selection
+      self.clipping(self.thumbnail_percentages.first).set_as_default
+      self.upload_thumbnail_selection
+      
+      self.thumbnail_position = self.thumbnail_percentages.first
+      self.save
+    end
+    
+    self.add_to_queue
+    
+    FileUtils.rm self.tmp_filepath
+  end
+  
+  # Reads information about the video into attributes.
+  # 
+  # Raises FormatNotRecognised if the video is not valid
+  # 
   def read_metadata
-    Merb.logger.info "#{self.key}: Meading metadata of video file"
+    Merb.logger.info "#{self.key}: Reading metadata of video file"
     
     inspector = RVideo::Inspector.new(:file => self.tmp_filepath)
-
+    
     raise FormatNotRecognised unless inspector.valid? and inspector.video?
-
+    
     self.duration = (inspector.duration rescue nil)
     self.container = (inspector.container rescue nil)
     self.width = (inspector.width rescue nil)
     self.height = (inspector.height rescue nil)
-
+    
     self.video_codec = (inspector.video_codec rescue nil)
     self.video_bitrate = (inspector.bitrate rescue nil)
     self.fps = (inspector.fps rescue nil)
@@ -229,8 +296,8 @@ class Video < SimpleDB::Base
     self.audio_codec = (inspector.audio_codec rescue nil)
     self.audio_sample_rate = (inspector.audio_sample_rate rescue nil)
     
-    raise FormatNotRecognised if self.duration == 0 # Don't allow videos with a duration of 0
-    # raise FormatNotRecognised if self.width.nil? or self.height.nil? # Little final check we actually have some usable video
+    # Don't allow videos with a duration of 0
+    raise FormatNotRecognised if self.duration == 0
   end
   
   def create_encoding_for_profile(p)
@@ -537,7 +604,7 @@ RESPONSE
       parent_obj = self.parent_video
       Merb.logger.info "(#{Time.now.to_s}) Encoding #{self.key}"
     
-      parent_obj.fetch_from_s3
+      parent_obj.fetch_from_store
 
       if self.container == "flv" and self.player == "flash"
         self.encode_flv_flash
@@ -547,8 +614,10 @@ RESPONSE
         self.encode_unknown_format
       end
       
-      self.upload_to_s3
-      self.capture_thumbnail_and_upload_to_s3
+      self.upload_to_store
+      self.generate_thumbnail_selection
+      self.clipping.set_as_default
+      self.upload_thumbnail_selection
       
       self.notification = 0
       self.status = "success"

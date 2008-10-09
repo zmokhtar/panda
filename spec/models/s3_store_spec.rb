@@ -74,9 +74,14 @@ describe S3Store do
   end
   
   describe "url" do
+    
+    Panda::Config.use do |p|
+      p[:videos_domain] = "videos.pandastream.com"
+    end
+    
     it "should convert the S3 key into a url" do
       @store.url('foo.mov').
-        should == "http://s3.amazonaws.com/myvideosbucket2/foo.mov"
+        should == ('http://videos.pandastream.com/foo.mov')
     end
   end
   

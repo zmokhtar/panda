@@ -5,7 +5,7 @@ describe Video do
     @video = mock_video
     
     Panda::Config.use do |p|
-      p[:tmp_video_dir] = '/tmp'
+      p[:private_tmp_path] = '/tmp'
       p[:state_update_url] = "http://localhost:4000/videos/$id/status"
       p[:upload_redirect_url] = "http://localhost:4000/videos/$id/done"
       p[:videos_domain] = "videos.pandastream.com"
@@ -14,6 +14,12 @@ describe Video do
     
     Store.stub!(:set).and_return(true)
     Store.stub!(:delete).and_return(true)
+  end
+  
+  describe "clipping" do
+    it "should return a clipping" do
+      @video.clipping.should be_kind_of(Clipping)
+    end
   end
   
   # Classification
@@ -98,6 +104,9 @@ describe Video do
   end
     
   it "tmp_filepath" do
+    @video.should_receive(:private_filepath).with('abc.mov').
+      and_return('/tmp/abc.mov')
+    
     @video.tmp_filepath.should == '/tmp/abc.mov'
   end
 
@@ -128,25 +137,6 @@ describe Video do
     @video.resolution.should be_nil
   end
   
-  # def video_bitrate_in_bits
-  # def audio_bitrate_in_bits
-  
-  it "screenshot" do
-    @video.screenshot.should == 'abc.mov.jpg'
-  end
-  
-  it "thumbnail" do
-    @video.thumbnail.should == 'abc.mov_thumb.jpg'
-  end
-  
-  it "screenshot_url" do
-    @video.screenshot_url.should == "http://videos.pandastream.com/abc.mov.jpg"
-  end
-  
-  it "thumbnail_url" do
-    @video.thumbnail_url.should == "http://videos.pandastream.com/abc.mov_thumb.jpg"
-  end
-  
   # def set_encoded_at
   
   # Encding attr helpers
@@ -170,45 +160,181 @@ describe Video do
     @video.embed_html.should == %(<embed src="http://videos.pandastream.com/flvplayer.swf" width="320" height="240" allowfullscreen="true" allowscriptaccess="always" flashvars="&displayheight=240&file=http://videos.pandastream.com/abc.flv&width=320&height=240&image=http://videos.pandastream.com/abc.flv.jpg" />)
   end
   
-  it "should upload_to_s3"
+  describe "storing and fetching from the store" do
+    it "should upload" do
+      Store.should_receive(:set).with(@video.filename, @video.tmp_filepath)
+      @video.upload_to_store
+    end
+
+    it "should fetch" do
+      Store.should_receive(:get).with(@video.filename, @video.tmp_filepath)
+      @video.fetch_from_store
+    end
+    
+    describe "delete" do
+      it "should delete" do
+        Store.should_receive(:delete).with(@video.filename)
+        @video.delete_from_store
+      end
+      
+      it "should not raise error if delete fails" do
+        Store.should_receive(:delete).
+          and_raise(AbstractStore::FileDoesNotExistError)
+        lambda {
+          @video.delete_from_store
+        }.should_not raise_error
+      end
+    end
+  end
   
-  it "should fetch_from_s3"
+  describe "thumbnail_percentages should generate list of percentages" do
+    it "should default to [50] if config option not set" do
+      Panda::Config[:choose_thumbnail] = false
+      @video.thumbnail_percentages.should == [50]
+    end
+    
+    it "should be [50] if 1 thumbnail" do
+      Panda::Config[:choose_thumbnail] = 1
+      @video.thumbnail_percentages.should == [50]
+    end
+    
+    it "should be [25, 50, 75] if 3 thumbnails" do
+      Panda::Config[:choose_thumbnail] = 3
+      @video.thumbnail_percentages.should == [25, 50, 75]
+    end
+    
+    it "should be [20,40,60,80] if 4 thumbnails" do
+      Panda::Config[:choose_thumbnail] = 4
+      @video.thumbnail_percentages.should == [20,40,60,80]
+    end
+  end
   
-  it "should capture_thumbnail_and_upload_to_s3" do
-    inspector = mock(RVideo::Inspector)
-    inspector.should_receive(:capture_frame).with('50%', '/tmp/abc.mov.jpg')
-    RVideo::Inspector.should_receive(:new).with(:file => '/tmp/abc.mov').and_return(inspector)
+  describe "generate_thumbnail_selection" do
+    before :each do
+      @clipping = mock(Clipping, :capture => true, :resize => true)
+      @video.stub!(:clipping).and_return(@clipping)
+      @video.stub!(:thumbnail_percentages).and_return([25,50,75])
+    end
     
-    gd = mock(GDResize)
-    gd.should_receive(:resize).with('/tmp/abc.mov.jpg', '/tmp/abc.mov_thumb.jpg', [168,126]) # Dimensions based on thumbnail_height_constrain of 126
-    GDResize.should_receive(:new).and_return(gd)
+    it "should capture for each thumbnail options" do
+      @clipping.should_receive(:capture).exactly(3).times
+      @video.generate_thumbnail_selection
+    end
     
-    Store.should_receive(:set).with('abc.mov.jpg', '/tmp/abc.mov.jpg').and_return(true)
-    Store.should_receive(:set).with('abc.mov_thumb.jpg', '/tmp/abc.mov_thumb.jpg').and_return(true)
-    
-    @video.capture_thumbnail_and_upload_to_s3.should be_true
+    it "should resize for each thumbnail option" do
+      @clipping.should_receive(:resize).exactly(3).times
+      @video.generate_thumbnail_selection
+    end
   end
   
   # Uploads
   # =======
   
-  it "should process" do
-    @video.should_receive(:valid?)
-    @video.should_receive(:read_metadata)
-    @video.should_receive(:upload_to_s3)
-    @video.should_receive(:add_to_queue)
+  describe "initial_processing" do
+    before(:each) do
+      @tempfile = mock(File, :filename => "tmpfile", :path => "/tump/tmpfile")
+      
+      @file = Mash.new({"content_type"=>"video/mp4", "size"=>100, "tempfile" => @tempfile, "filename" => "file.mov"})
+      @video.status = 'empty'
+      
+      FileUtils.stub!(:mv)
+      @video.stub!(:read_metadata)
+      @video.stub!(:save)
+    end
     
-    @video.process
+    it "should raise NotValid if video is not empty" do
+      @video.status = 'original'
+      
+      lambda {
+        @video.initial_processing(@file)
+      }.should raise_error(Video::NotValid)
+      
+      @video.status = 'empty'
+      
+      lambda {
+        @video.initial_processing(@file)
+      }.should_not raise_error(Video::NotValid)
+    end
+    
+    it "should set filename and original_filename" do
+      @video.should_receive(:key).and_return('1234')
+      @video.should_receive(:filename=).with("1234.mov")
+      @video.should_receive(:original_filename=).with("file.mov")
+      
+      @video.initial_processing(@file)
+    end
+    
+    it "should move file to tempoary location" do
+      FileUtils.should_receive(:mv).with("/tump/tmpfile", "/tmp/abc.mov")
+      
+      @video.initial_processing(@file)
+    end
+    
+    it "should read metadata" do
+      @video.should_receive(:read_metadata).and_return(true)
+      
+      @video.initial_processing(@file)
+    end
+    
+    it "should save video" do
+      @video.should_receive(:status=).with("original")
+      @video.should_receive(:save)
+      
+      @video.initial_processing(@file)
+    end
   end
   
-  it "valid? should raise NotValid if video is not empty" do
-    @video.status = 'original'
-    lambda {@video.valid?}.should raise_error(Video::NotValid)
-  end
-  
-  it "valid? should return true if video is empty" do
-    @video.status = 'empty'
-    @video.valid?.should be_true
+  describe "finish_processing_and_queue_encodings" do
+    
+    before(:each) do
+      @clipping = mock(Clipping, {
+        :set_as_default => true, :changeable? => true
+      })
+      
+      @video.status = 'original'
+      @video.stub!(:upload_to_store)
+      @video.stub!(:generate_thumbnail_selection)
+      @video.stub!(:clipping).and_return(@clipping)
+      @video.stub!(:upload_thumbnail_selection)
+      @video.stub!(:save)
+      @video.stub!(:add_to_queue)
+      @video.stub!(:tmp_filepath).and_return('tmpfile')
+      FileUtils.stub!(:rm)
+    end
+    
+    it "should upload original to store" do
+      @video.should_receive(:upload_to_store).and_return(true)
+      @video.finish_processing_and_queue_encodings
+    end
+    
+    describe "if clipping can be changed" do
+      it "should generate and upload clippings" do
+        Panda::Config[:choose_thumbnail] = 2
+        @video.should_receive(:generate_thumbnail_selection).and_return(true)
+        @video.should_receive(:upload_thumbnail_selection).and_return(true)
+        @video.finish_processing_and_queue_encodings
+      end
+      
+      it "should set the default clipping position" do
+        @video.should_receive(:thumbnail_position=)
+        @video.finish_processing_and_queue_encodings
+      end
+      
+      it "should upload default clipping" do
+        @clipping.should_receive(:set_as_default)
+        @video.finish_processing_and_queue_encodings
+      end
+    end
+    
+    it "should add encodings to queue" do
+      @video.should_receive(:add_to_queue).and_return(true)
+      @video.finish_processing_and_queue_encodings
+    end
+    
+    it "should clean up original video" do
+      FileUtils.should_receive(:rm).and_return(true)
+      @video.finish_processing_and_queue_encodings
+    end
   end
   
   # def read_metadata
@@ -300,9 +426,6 @@ describe Video do
     lambda {@video.send_notification}.should raise_error(StandardError)
   end
   
-  # it "should send_status_update_to_client" do
-    
-  
   # Encoding
   # ========
   
@@ -356,14 +479,19 @@ describe Video do
   it "should call encode_flv_flash when encoding an flv for the flash player" do
     encoding = mock_encoding_flv_flash
     encoding.stub!(:parent_video).and_return(@video)
-    @video.should_receive(:fetch_from_s3)
+    @video.should_receive(:fetch_from_store)
   
     encoding.should_receive(:status=).with("processing")
     encoding.should_receive(:save).twice
     encoding.should_receive(:encode_flv_flash)
   
-    encoding.should_receive(:upload_to_s3)
-    encoding.should_receive(:capture_thumbnail_and_upload_to_s3)
+    encoding.should_receive(:upload_to_store)
+    encoding.should_receive(:generate_thumbnail_selection)
+    encoding.should_receive(:upload_thumbnail_selection)
+    clipping = returning(mock(Clipping)) do |c|
+      c.should_receive(:set_as_default)
+    end
+    encoding.should_receive(:clipping).and_return(clipping)
     
     encoding.should_receive(:notification=).with(0)
     encoding.should_receive(:status=).with("success")
@@ -380,7 +508,7 @@ describe Video do
   it "should set the encoding's status to error if the video fails to encode correctly" do
     encoding = mock_encoding_flv_flash
     encoding.stub!(:parent_video).and_return(@video)
-    @video.should_receive(:fetch_from_s3)
+    @video.should_receive(:fetch_from_store)
   
     encoding.should_receive(:status=).with("processing")
     encoding.should_receive(:save).twice

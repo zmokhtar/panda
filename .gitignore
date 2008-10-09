@@ -1,5 +1,6 @@
 *.log
 *.pid
+coverage
 uuid.state
 .DS_Store
 database.yml
@@ -12,4 +13,6 @@ videos/*
 config/mailer.rb
 config/panda_init_*.rb
 panda_all_staging_nginx.conf
+public/images/tmp/*jpg
 public/store
+public/tmp

@@ -235,6 +235,11 @@ table.videos .success {
   height: 125px;
 }
 
+.thumb img {
+	display: block;
+	margin: 0 auto;
+}
+
 /* ACCOUNT */
 
 .account_details h3 {
@@ -257,4 +262,20 @@ table.videos .success {
   border-top: 1px solid #dedede;
   margin-top: 15px;
   padding-top: 5px;
+}
+
+/* CHOOSE THUMBNAIL */
+
+#screenshots li {
+  list-style-type: none;
+  float: left;
+  border: 1px solid #ddd;
+  margin: 5px;
+}
+#screenshots li a {
+  display: block;
+  padding: 5px;
+}
+#screenshots li a:hover {
+  background: #eee;
 }
