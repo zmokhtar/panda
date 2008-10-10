@@ -257,16 +257,14 @@ class Video < SimpleDB::Base
   # 
   def finish_processing_and_queue_encodings
     self.upload_to_store
-
+    
     # Generate thumbnails before we add to encoding queue
-    if self.clipping.changeable?
-      self.generate_thumbnail_selection
-      self.clipping(self.thumbnail_percentages.first).set_as_default
-      self.upload_thumbnail_selection
-      
-      self.thumbnail_position = self.thumbnail_percentages.first
-      self.save
-    end
+    self.generate_thumbnail_selection
+    self.clipping(self.thumbnail_percentages.first).set_as_default
+    self.upload_thumbnail_selection
+    
+    self.thumbnail_position = self.thumbnail_percentages.first
+    self.save
     
     self.add_to_queue
     
