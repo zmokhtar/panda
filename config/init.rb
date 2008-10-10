@@ -58,7 +58,7 @@ Merb::BootLoader.after_app_loads do
   end
   
   LocalStore.ensure_directories_exist
-  Profile.warn_if_no_encodings
+  Profile.warn_if_no_encodings unless Merb.env == 'test'
 end
 
 EMAIL_SENDER = "Panda <info@pandastream.com>"
