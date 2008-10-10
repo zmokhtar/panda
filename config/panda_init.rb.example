@@ -6,9 +6,12 @@ Panda::Config.use do |p|
   # ================================================
   # API integration options
   # ================================================
-  # The api_key allows your application to authenticate with Panda.
-  # When a video has been uploaded panda will redirect to upload_redirect_url 
-  # which should exist on your application.
+  # The api_key allows your application to authenticate with Panda. You should 
+  # generate a random string to use as the key.
+  # 
+  # When a video has been uploaded panda (through the iframe or popup) Panda 
+  # will redirect to upload_redirect_url. This URL should exist on your 
+  # application. The $id in the url will be replaced by the videos' key.
   
   p[:api_key]               = "SECRET_KEY_FOR_PANDA_API"
   p[:upload_redirect_url]   = "http://localhost:4000/videos/$id/done"
@@ -56,7 +59,7 @@ Panda::Config.use do |p|
   # If you set this option you will be able to change the thumbnail for a 
   # video after a video has been encoded. This many thumbnail options will 
   # automatically be generated. The positions of these clipping will be 
-  # equally distributed throughoutt the video.
+  # equally distributed throughout the video.
   
   # p[:choose_thumbnail]      = 6 
   
@@ -64,7 +67,7 @@ Panda::Config.use do |p|
   # Application notification
   # ================================================
   # Panda will send your application a notfication when a video has finished
-  # encoding. If it fails it will rety notification_retries times. These 
+  # encoding. If it fails it will retry notification_retries times. These 
   # values are the defaults and should work for most applications.
   
   # p[:notification_retries]  = 6
