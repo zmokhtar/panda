@@ -1,4 +1,5 @@
 module Panda
+  class ConfigError < RuntimeError; end
   
   class Setup
     class << self
@@ -17,21 +18,16 @@ module Panda
       def defaults
         @defaults ||= {
           :account_name           => "My Panda Account",
-          :api_key                => nil,
-          :notification_email     => nil,
-          :upload_redirect_url    => "http://127.0.0.1:3000/videos/$1/done",
-          :state_update_url       => "http://127.0.0.1:3000/videos/$1/status",
           
-          :private_tmp_path       => "videos",
+          :private_tmp_path       => Merb.root / "videos",
           :public_tmp_path        => Merb.root / "public" / "tmp",
           :public_tmp_url         => "/tmp",
           
-          :videos_domain          => nil,
-          :storage                => :filesystem, # or :s3 TODO: implement
-          :thumbnail_height_constrain => 126,
+          :thumbnail_height_constrain => 125,
           :choose_thumbnail       => false,
-          :notification_frequency => 3,
-          :notification_retries => 6
+          
+          :notification_retries => 6,
+          :notification_frequency => 10
         }
       end
       
@@ -46,6 +42,24 @@ module Panda
       
       def []=(key,val)
         @configuration[key] = val
+      end
+      
+      def check
+        check_present(:api_key, "Please specify a secret api_key")
+        check_present(:upload_redirect_url)
+        check_present(:state_update_url)
+        
+        %w{sdb_videos_domain sdb_users_domain sdb_profiles_domain}.each do |d|
+          check_present(d.to_sym)
+        end
+      end
+      
+      def check_present(option, message = nil)
+        unless Panda::Config[option]
+          m = "Missing required configuration option: #{option.to_s}"
+          m += " [#{message}]" if message
+          raise Panda::ConfigError, m
+        end
       end
     end
   end

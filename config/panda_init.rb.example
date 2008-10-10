@@ -1,18 +1,26 @@
- require 'panda'
+require 'panda'
 
 Panda::Config.use do |p|
-  p[:account_name]           = "New Bamboo"
-  p[:api_key]                = "f9e3425-16fd-012b-731d-001ec2b5c0e1"
-  p[:upload_redirect_url]    = "http://localhost:4000/videos/$id/done"
-  p[:state_update_url]       = "http://localhost:4000/videos/$id/status_update"
+  # p[:account_name]          = "OPTIONAL_STRING_TO_IDENTIFY_PANDA_INSTANCE"
   
-  # =====================================================
-  # Local storage. Public is accessible from the internet
-  # =====================================================
+  # ================================================
+  # API integration options
+  # ================================================
+  # The api_key allows your application to authenticate with Panda.
+  # When a video has been uploaded panda will redirect to upload_redirect_url 
+  # which should exist on your application.
+  
+  p[:api_key]               = "SECRET_KEY_FOR_PANDA_API"
+  p[:upload_redirect_url]   = "http://localhost:4000/videos/$id/done"
+  
+  # ============================================================
+  # Local storage. Public should be accessible from the internet
+  # ============================================================
   
   p[:private_tmp_path]      = "/var/tmp/videos"
-  p[:public_tmp_path]       = # '/var/www/images'
-  p[:public_tmp_url]        = # 'http://images.app.com'
+  # Defaults to tmp within the Panda public directory. Optionally configurable
+  # p[:public_tmp_path]       = "/var/www/images"
+  # p[:public_tmp_url]        = "http://images.app.com"
   
   # ================================================
   # Storage location for uploaded and encoded videos
@@ -20,28 +28,53 @@ Panda::Config.use do |p|
   
   # For S3 storage:
   p[:videos_store]          = :s3
-  # For example "s3.amazonaws.com/myvideosbucket" or a FQDN if configured
-  p[:videos_domain]         = ""
+  p[:videos_domain]         = "s3.amazonaws.com/S3_BUCKET"
+  p[:s3_videos_bucket]      = "S3_BUCKET"
   
   # For local filesystem storage:
   # p[:videos_store]          = :filesystem
   # p[:videos_domain]         = "localhost:4000/store"
   # p[:public_videos_dir]     = Merb.root / "public" / "store"
   
-  p[:access_key_id]          = "" # Your AWS Access Key
-  p[:secret_access_key]      = "" # Your AWS Secret Access Key
-  p[:s3_videos_bucket]       = "" # eg: "myvideosbucket",  or fqdn like "videos.pandastream.com" if you've setup the CNAE record.
-  p[:sdb_videos_domain]      = "panda_videos"
-  p[:sdb_users_domain]       = "panda_users"
-  p[:sdb_profiles_domain]    = "panda_profiles"
+  # ================================================
+  # AWS Details
+  # ================================================
   
-  p[:thumbnail_height_constrain] = 125
-  # Number of thumbnails you can choose from after uploading video.
-  # If you do not set this value, thumbnail selection will be ignored. 
-  # p[:choose_thumbnail]       = 6 
+  # For S3 and SimpleDB:
+  p[:access_key_id]         = "AWS_ACCESS_KEY"
+  p[:secret_access_key]     = "AWS_SECRET_ACCESS_KEY"
   
-  p[:notification_retries] = 6 # How many times should a failed notification be retried?
-  p[:notification_frequency] = 2 # How many
-  p[:notification_email]     = "" # Where notifications get sent to. eg: me@mydomain.com
-  p[:noreply_from]     = "" # Where notifications come from. eg: no-reply@pandastream.com
+  # SimpleDB domains:
+  p[:sdb_videos_domain]     = "PANDA_VIDEOS"
+  p[:sdb_users_domain]      = "PANDA_USERS"
+  p[:sdb_profiles_domain]   = "PANDA_PROFILES"
+  
+  # ================================================
+  # Thumbnail
+  # ================================================
+  # If you set this option you will be able to change the thumbnail for a 
+  # video after a video has been encoded. This many thumbnail options will 
+  # automatically be generated. The positions of these clipping will be 
+  # equally distributed throughoutt the video.
+  
+  # p[:choose_thumbnail]      = 6 
+  
+  # ================================================
+  # Application notification
+  # ================================================
+  # Panda will send your application a notfication when a video has finished
+  # encoding. If it fails it will rety notification_retries times. These 
+  # values are the defaults and should work for most applications.
+  
+  # p[:notification_retries]  = 6
+  # p[:notification_frequency]= 10
+  p[:state_update_url]      = "http://YOUR_APP/videos/$id/status_update"
+  
+  # ================================================
+  # Get emailed error messages
+  # ================================================
+  # If you want errors emailed to you, when an encoding fails or panda fails 
+  # to post a notification to your application, fill in both values:
+  # p[:notification_email]    = "me@mydomain.com"
+  # p[:noreply_from]          = "panda@mydomain.com"
 end

@@ -9,7 +9,7 @@ describe Video do
       p[:state_update_url] = "http://localhost:4000/videos/$id/status"
       p[:upload_redirect_url] = "http://localhost:4000/videos/$id/done"
       p[:videos_domain] = "videos.pandastream.com"
-      p[:thumbnail_height_constrain] = 126
+      p[:thumbnail_height_constrain] = 125
     end
     
     Store.stub!(:set).and_return(true)

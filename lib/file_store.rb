@@ -2,6 +2,8 @@ class FileStore < AbstractStore
   include FileUtils
   
   def initialize
+    raise Panda::ConfigError, "You must specify public_videos_dir and videos_domain to use filesystem storage" unless Panda::Config[:public_videos_dir] && Panda::Config[:videos_domain]
+    
     @dir = Panda::Config[:public_videos_dir]
     mkdir_p(@dir)
   end

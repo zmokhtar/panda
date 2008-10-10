@@ -1,9 +1,11 @@
 class S3VideoObject < AWS::S3::S3Object
   set_current_bucket_to Panda::Config[:s3_videos_bucket]
 end
- 
+
 class S3Store < AbstractStore
   def initialize
+    raise Panda::ConfigError, "You must specify videos_domain and s3_videos_bucket to use s3 storage" unless Panda::Config[:videos_domain] && Panda::Config[:s3_videos_bucket]
+    
     AWS::S3::Base.establish_connection!(
       :access_key_id     => Panda::Config[:access_key_id],
       :secret_access_key => Panda::Config[:secret_access_key],

@@ -29,6 +29,8 @@ dependencies 'local_store'
 require 'aws/s3'
 require 'inline'
 
+Panda::Config.check
+
 Merb::BootLoader.after_app_loads do
   # Panda specific
 
@@ -56,6 +58,7 @@ Merb::BootLoader.after_app_loads do
   end
   
   LocalStore.ensure_directories_exist
+  Profile.warn_if_no_encodings
 end
 
 EMAIL_SENDER = "Panda <info@pandastream.com>"
