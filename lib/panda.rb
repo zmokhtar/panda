@@ -3,12 +3,18 @@ module Panda
   
   class Setup
     class << self
-      def create_s3_bucket(name)
-        AWS::S3::Bucket.create(name)
+      def create_s3_bucket
+        AWS::S3::Bucket.create(Panda::Config[:s3_videos_bucket])
       end
       
       def create_sdb_domain(name)
-       SimpleDB::Base.connection.create_domain(name)
+        SimpleDB::Base.connection.create_domain(name)
+      end
+      
+      def create_sdb_domains
+        %w{sdb_videos_domain sdb_users_domain sdb_profiles_domain}.map do |d|
+          Panda::Setup.create_sdb_domain(Panda::Config[d.to_sym])
+        end
       end
     end
   end
