@@ -38,7 +38,7 @@ class Thumbnail < Application
   def update
     message = {:notice => "Please give Panda a moment to finish moving your thumbnails around."}
     
-    render_then_call redirect(url(:video, @video.key), :message => message) do
+    run_later do
       @video.thumbnail_position = params[:percentage]
       @video.save
       @video.clipping.set_as_default
@@ -47,6 +47,8 @@ class Thumbnail < Application
         video.clipping.set_as_default
       end
     end
+    
+    redirect(url(:video, @video.key), :message => message)
   end
   
   private
