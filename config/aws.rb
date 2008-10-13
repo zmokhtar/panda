@@ -1,4 +1,4 @@
-# Amazon::SDB::Base::BASE_PATH = "http://localhost:8087"
+Amazon::SDB::Base::BASE_PATH = Panda::Config[:sdb_base_url]
 
 SimpleDB::Base.establish_connection!(
   :access_key_id     => Panda::Config[:access_key_id],

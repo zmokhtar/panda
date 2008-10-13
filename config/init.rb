@@ -64,8 +64,6 @@ Merb::BootLoader.after_app_loads do
   rescue Amazon::SDB::ParameterError
     Merb.logger.info "PANDA WARNING: Profile simple db domain does not exist. Please check that you have created all the required domains (see the getting started guide)."
   end
-  
-  Amazon::SDB::Base::BASE_PATH = Panda::Config[:sdb_base_url]
 end
 
 EMAIL_SENDER = "Panda <info@pandastream.com>"
