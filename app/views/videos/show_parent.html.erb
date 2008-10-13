@@ -1,3 +1,5 @@
+<%= message %>
+
 <ul class="actions">
   <li><%= link_to "Add to queue", "/videos/#{@video.key}/add_to_queue" %></li>
   <% if @video.clipping.changeable? %>

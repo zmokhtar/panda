@@ -14,5 +14,9 @@ module Merb
     def notice
       %(<div class="notice">#{@notice}</div>) if @notice
     end
+    
+    def message
+      %(<div class="notice">#{request.message[:notice]}</div>) if request.message[:notice]
+    end
   end
 end    

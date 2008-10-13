@@ -36,15 +36,17 @@ class Thumbnail < Application
   # The video is already encoded and we're changing its thumbnail
   # 
   def update
-    @video.thumbnail_position = params[:percentage]
-    @video.save
-    @video.clipping.set_as_default
+    message = {:notice => "Please give Panda a moment to finish moving your thumbnails around."}
     
-    @video.successful_encodings.each do | video |
-      video.clipping.set_as_default
+    render_then_call redirect(url(:video, @video.key), :message => message) do
+      @video.thumbnail_position = params[:percentage]
+      @video.save
+      @video.clipping.set_as_default
+      
+      @video.successful_encodings.each do | video |
+        video.clipping.set_as_default
+      end
     end
-    
-    redirect url(:video, @video.key)
   end
   
   private
