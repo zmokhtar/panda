@@ -58,7 +58,12 @@ Merb::BootLoader.after_app_loads do
   end
   
   LocalStore.ensure_directories_exist
-  Profile.warn_if_no_encodings unless Merb.env == 'test'
+  
+  begin
+    Profile.warn_if_no_encodings unless Merb.env == 'test'
+  rescue Amazon::SDB::ParameterError
+    Merb.logger.info "PANDA WARNING: Profile simple db domain does not exist. Please check that you have created all the required domains (see the getting started guide)."
+  end
 end
 
 EMAIL_SENDER = "Panda <info@pandastream.com>"
