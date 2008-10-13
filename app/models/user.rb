@@ -4,7 +4,7 @@ class User < SimpleDB::Base
   attr_accessor :password, :password_confirmation
   
   def login
-    self.key
+    self.new_record ? '' : self.key
   end
   
   def login=(v)
