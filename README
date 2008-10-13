@@ -19,7 +19,7 @@ Merb 0.9.2
 S3 (http://amazon.rubyforge.org/)
 SimpleDB (http://nytimes.rubyforge.org/amazon_sdb/)
 
-gem install merb merb_helpers activesupport RubyInline amazon_sdb sqs
+  gem install merb merb_helpers activesupport RubyInline amazon_sdb SQS uuid
 
 Other deps
 ----------
@@ -28,14 +28,35 @@ Other deps
 http://www.ijg.org/
 http://www.libgd.org/FAQ#gd_keeps_saying_it_can.27t_find_png_or_jpeg_support._I_did_install_libpng_and_libjpeg._What_am_I_missing.3F
 
+Grab the source, build, and install
+
+  mkdir -p ~/src && cd ~/src
+  wget ftp://ftp.uu.net/graphics/jpeg/jpegsrc.v6b.tar.gz
+  tar zxvf jpegsrc.v6b.tar.gz
+  cd jpeg-6b && ./configure && make && sudo make install
+
 # libgd
 http://www.libgd.org/Main_Page
+
+Grab the source, build, and install
+
+  mkdir -p ~/src && cd ~/src
+  wget http://www.libgd.org/releases/gd-2.0.35.tar.gz
+  tar zxvf gd-2.0.35.tar.gz
+  cd gd-2.0.35 && ./configure && make && sudo make install
 
 RVideo
 ------
 
-Build gem from svn://rubyforge.org/var/svn/rvideo/trunk with `rake install_gem`.
-Then `sudo cp lib/rvideo/tools/*.rb  /Library/Ruby/Gems/1.8/gems/rvideo-0.9.4/lib/rvideo/tools/` on OS X.
+Grab the source and build the gem:
+
+  git clone git://github.com/jaikoo/rvideo.git
+  cd rvideo
+  rake install_gem
+
+Install the rvideo tools (on OS X at least; your system may differ)
+
+  sudo cp lib/rvideo/tools/*.rb /usr/lib/ruby/gems/1.8/gems/rvideo-0.9.4/lib/rvideo/tools/
 
 FFMPEG
 -----

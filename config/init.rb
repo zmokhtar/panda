@@ -39,7 +39,7 @@ Merb::BootLoader.after_app_loads do
     require "config" / "mailer" # If you want notification and encoding errors to be sent to you as well as logged
   end
 
-# Overwriding form, as SimpleDB does not provide errors on object.
+  # Overriding form, as SimpleDB does not provide errors on object.
   module Merb::Helpers::Form
     def _singleton_form_context
       self._default_builder = Merb::Helpers::Form::Builder::ResourcefulForm
@@ -64,6 +64,8 @@ Merb::BootLoader.after_app_loads do
   rescue Amazon::SDB::ParameterError
     Merb.logger.info "PANDA WARNING: Profile simple db domain does not exist. Please check that you have created all the required domains (see the getting started guide)."
   end
+  
+  Amazon::SDB::Base::BASE_PATH = Panda::Config[:sdb_base_url]
 end
 
 EMAIL_SENDER = "Panda <info@pandastream.com>"

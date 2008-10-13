@@ -32,8 +32,10 @@ module Panda
           :thumbnail_height_constrain => 125,
           :choose_thumbnail       => false,
           
-          :notification_retries => 6,
-          :notification_frequency => 10
+          :notification_retries   => 6,
+          :notification_frequency => 10,
+          
+          :sdb_base_url           => "http://sdb.amazonaws.com/"
         }
       end
       
