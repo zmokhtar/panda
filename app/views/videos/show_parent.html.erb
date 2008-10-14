@@ -27,7 +27,6 @@
   <dd><%= @video.duration_str %></dd>
 </dl>
 
-
 <% @video.encodings.each do |enc| %>
 	<h3><a href="/videos/<%= enc.key %>"><%= enc.profile_title %></a></h3>
 	
@@ -40,9 +39,10 @@
 		<div class="response">Once uploaded and encoded the video will be displayed here.</div>
 	<% end %>
 	</div>
-	
 	<div class="embed_code">
 		<h4>Embed code</h4>
-		<textarea cols="50" rows="6"><%= enc.embed_js %></textarea>
+		<textarea cols="50" rows="6">
+		<%= swfobject2_link %>
+  	<%= enc.embed_js %></textarea>
 	</div>
 <% end %>
