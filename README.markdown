@@ -1,6 +1,9 @@
+Panda
+=====
+
 Panda is an open source solution for video uploading, encoding and streaming.
 
-Please see http://pandastream.com/ for an introduction and lots of documentation.
+Please see [pandastream.com](http://pandastream.com/) for an introduction and lots of documentation.
 
 Information beyond this point is aimed at people who want to contribute to panda and / or understand how it works.
 
