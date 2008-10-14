@@ -58,7 +58,7 @@ describe Thumbnail do
     end
     
     it "should redirect to video page" do
-      dispatch.should redirect_to(url(:video, @video.key))
+      dispatch.headers["Location"].should match(/[#{url(:video, @video.key)}]/)
     end
     
     def dispatch
