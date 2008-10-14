@@ -2,9 +2,9 @@
 Gem.clear_paths
 Gem.path.unshift(Merb.root / "gems")
 
-# Make the app's "lib" directory a place where ruby files get "require"d from
+# Autoload from lib
 $LOAD_PATH.unshift(Merb.root / "lib")
-
+Merb.push_path(:lib, Merb.root / "lib") # uses **/*.rb as path glob.
 
 Merb::Config.use do |c|
   
@@ -20,14 +20,18 @@ end
 
 require "config" / "panda_init"
 
-dependencies 'merb-assets', 'merb-mailer', 'merb_helpers', 'uuid', 'to_simple_xml', 'rog', 'amazon_sdb', 'simple_db', 'retryable', 'activesupport', 'rvideo', 'panda', 'gd_resize', 'map_to_hash', 'spec_eql_hash', 'error_sender'
+# Gem dependencies
+dependency 'merb-assets'
+dependency 'merb-mailer'
+dependency 'merb_helpers'
+dependency 'uuid'
+dependency 'amazon_sdb'
+dependency 'activesupport'
+dependency 'rvideo'
 
-dependencies 'abstract_store', 's3_store', 'file_store'
-dependencies 'local_store'
-
-# Not sure why dependencies won't load AWS::S3
-require 'aws/s3'
-require 'inline'
+# Dependencies in lib - not autoloaded in time so require them explicitly
+require 'simple_db'
+require 'local_store'
 
 Panda::Config.check
 

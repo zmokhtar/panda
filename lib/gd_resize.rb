@@ -1,3 +1,5 @@
+require 'inline'
+
 class GDResize
   SUPPORTED_FORMATS = %w(jpg jpeg png gif)
 
