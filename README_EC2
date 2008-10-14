@@ -93,7 +93,7 @@ You can start Merb directly:
 The encoder can be run with 
 
     cd /var/local/www/panda
-    merb -r lib/encoder.rb -p 5001 -e encoder
+    merb -r bin/encoder.rb -p 5001 -e encoder
 
 Using God with the supplied config is the best method to control Merb and the encoder:
 

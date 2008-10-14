@@ -1,4 +1,4 @@
-# merb -r "panda/lib/encoder.rb"
+# merb -r "panda/bin/encoder.rb"
 
 Merb.logger.info 'Encoder awake!'
 
