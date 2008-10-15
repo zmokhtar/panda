@@ -39,18 +39,6 @@ describe Video do
     Video.all
   end
   
-  it "self.recent_videos" do
-    Video.should_receive(:query).with("['status' = 'original']", :max_results => 10, :load_attrs => true)
-    
-    Video.recent_videos
-  end
-  
-  it "self.recent_encodings" do
-    Video.should_receive(:query).with("['status' = 'success']", :max_results => 10, :load_attrs => true)
-    
-    Video.recent_encodings
-  end
-  
   it "self.queued_encodings" do
     Video.should_receive(:query).with("['status' = 'processing' or 'status' = 'queued']", :load_attrs => true)
     

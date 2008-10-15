@@ -12,6 +12,8 @@ Merb::Config.use do |c|
   c[:session_store] = 'cookie'
 end
 
+use_orm :datamapper
+
 # Load Panda config
 require "config" / "panda_init"
 
@@ -23,6 +25,7 @@ dependency 'uuid'
 dependency 'amazon_sdb'
 dependency 'activesupport'
 dependency 'rvideo'
+dependency 'dm-timestamps'
 
 # Dependencies in lib - not autoloaded in time so require them explicitly
 require 'simple_db'
