@@ -13,7 +13,7 @@ class Video
   property :height, Integer
   property :video_codec, String
   property :video_bitrate, String
-  property :fps, String
+  property :fps, Integer
   property :audio_codec,String 
   property :audio_bitrate, String
   property :audio_sample_rate, String

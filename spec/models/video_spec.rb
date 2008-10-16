@@ -115,19 +115,19 @@ describe Video do
 
   
   it "self.next_job" do
-    Video.should_receive(:query).with("['status' = 'queued']").and_return([])
+    Video.should_receive(:all).with(:status => 'queued').and_return([])
     Video.next_job
   end
   
   it "parent_video" do
     @video.parent = 'xyz'
-    Video.should_receive(:find).with('xyz')
+    Video.should_receive(:get).with('xyz')
     
     @video.parent_video
   end
   
   it "encodings" do 
-    Video.should_receive(:query).with("['parent' = 'abc']")
+    Video.should_receive(:all).with(:parent => 'abc')
     @video.encodings
   end
   
@@ -141,20 +141,20 @@ describe Video do
       
       @video.should_receive(:encodings).and_return([@encoding])
       
-      @video.stub!(:destroy!)
-      @encoding.stub!(:destroy!)
+      @video.stub!(:destroy)
+      @encoding.stub!(:destroy)
     end
     
     it "should delete the original from the store and database" do
       Store.should_receive(:delete).once.with('abc.mov')
-      @video.should_receive(:destroy!).once
+      @video.should_receive(:destroy).once
       
       @video.obliterate!
     end
     
     it "should delete all encodings from the store database" do
       Store.should_receive(:delete).once.with('abc.flv')
-      @encoding.should_receive(:destroy!).once
+      @encoding.should_receive(:destroy).once
       
       @video.obliterate!
     end
@@ -403,7 +403,7 @@ describe Video do
     Video.should_receive(:query).with("['parent' = 'abc'] intersection ['profile' = 'profile1']").and_return([])
     # We didn't find a video, so the method will create one now
     
-    encoding = Video.new('xyz')
+    encoding = Video.new(:id => 'xyz')
     encoding.should_receive(:status=).with("queued")
     encoding.should_receive(:filename=).with("xyz.flv")
     
@@ -515,7 +515,7 @@ describe Video do
   it "should return correct recipe_options hash" do
     encoding = mock_encoding_flv_flash
     encoding.should_receive(:parent_video).twice.and_return(@video)
-    encoding.recipe_options('/tmp/abc.mov', '/tmp/xyz.flv').should eql_hash(
+    encoding.recipe_options('/tmp/abc.mov', '/tmp/xyz.flv').should eql_hash (
       {
         :input_file => '/tmp/abc.mov',
         :output_file => '/tmp/xyz.flv',
