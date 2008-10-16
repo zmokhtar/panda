@@ -1,0 +1,28 @@
+# Example for mysql
+#
+# :development: &defaults
+#   :adapter: mysql
+#   :database: panda_development
+#   :username: root
+#   :password: 
+#   :host: localhost
+#   :socket: 
+#   :encoding: utf8
+# 
+
+:development: &defaults
+  :adapter: simpledb
+  :domain: <%= Panda::Config[:sdb_domain] %>
+  :access_key: <%= Panda::Config[:access_key_id] %>
+  :secret_key: <%= Panda::Config[:secret_access_key] %>
+
+:test:
+  <<: *defaults
+  :database: panda_test
+
+:production:
+  <<: *defaults
+  :database: panda_production
+  
+:rake:
+  <<: *defaults
