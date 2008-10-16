@@ -515,7 +515,7 @@ describe Video do
   it "should return correct recipe_options hash" do
     encoding = mock_encoding_flv_flash
     encoding.should_receive(:parent_video).twice.and_return(@video)
-    encoding.recipe_options('/tmp/abc.mov', '/tmp/xyz.flv').should eql_hash (
+    encoding.recipe_options('/tmp/abc.mov', '/tmp/xyz.flv').should eql_hash(
       {
         :input_file => '/tmp/abc.mov',
         :output_file => '/tmp/xyz.flv',
