@@ -21,5 +21,9 @@ class Profile
     if Profile.all.empty?
       Merb.logger.info "PANDA CONFIG ERROR: There are no encoding profiles. You probably forgot to define them. Please see the getting started guide."
     end
+  rescue
+    # Datamapper should raise a consistent error if the domain/table does not 
+    # exist. It doesn't. So rescue everything.
+    Merb.logger.info "PANDA WARNING: Profile domain/table does not exist. Please check that you have created all the required domains/tables (see the getting started guide)."
   end
 end
