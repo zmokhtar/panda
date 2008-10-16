@@ -33,12 +33,16 @@ describe Video do
   # Finders
   # =======
   
-  it "self.all" do
-    Video.should_receive(:query).with("['status' = 'original'] intersection ['created_at' != ''] sort 'created_at' desc", {:load_attrs=>true})
-    
-    Video.all
+  describe "self.all_originals" do
+    it "should return original videos ordered by created_at" do
+      Video.should_receive(:all).with(
+                                      :status => 'original', 
+                                      :order => ["created_at"]
+                                      )
+      Video.all_originals
+    end
   end
-  
+
   it "self.queued_encodings" do
     Video.should_receive(:query).with("['status' = 'processing' or 'status' = 'queued']", :load_attrs => true)
     
@@ -245,7 +249,7 @@ describe Video do
     end
     
     it "should set filename and original_filename" do
-      @video.should_receive(:key).and_return('1234')
+      @video.should_receive(:id).and_return('1234')
       @video.should_receive(:filename=).with("1234.mov")
       @video.should_receive(:original_filename=).with("file.mov")
       
@@ -560,8 +564,9 @@ describe Video do
   private
   
     def mock_profile
-      Profile.new("profile1", 
+      Profile.new(
         {
+          :id => 'profile1',
           :title => "Flash video HI", 
           :container => "flv", 
           :video_bitrate => 400, 
@@ -576,8 +581,9 @@ describe Video do
     end
   
   def mock_video(attrs={})
-    enc = Video.new("abc", 
+    enc = Video.new(
       {
+        :id => "abc",
         :status => 'original',
         :filename => 'abc.mov',
         :original_filename => 'original_filename.mov',
@@ -594,8 +600,9 @@ describe Video do
   end
   
   def mock_encoding_flv_flash(attrs={})
-    enc = Video.new('xyz', 
+    enc = Video.new(
       {
+        :id => 'xyz',
         :status => 'queued',
         :filename => 'xyz.flv',
         :container => 'flv',
@@ -612,8 +619,9 @@ describe Video do
   end
   
   def mock_encoding_mp4_aac_flash(attrs={})
-    enc = Video.new('xyz', 
+    enc = Video.new( 
       {
+        :id => 'xyz',
         :status => 'queued',
         :filename => 'xyz.mp4',
         :container => 'mp4',
@@ -630,8 +638,9 @@ describe Video do
   end
   
   def mock_encoding_unknown_format(attrs={})
-    enc = Video.new('xyz', 
+    enc = Video.new(
       {
+        :id => 'xyz',
         :status => 'queued',
         :filename => 'xyz.xxx',
         :container => 'xxx',
