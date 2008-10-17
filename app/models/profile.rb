@@ -14,8 +14,8 @@ class Profile
   property :audio_bitrate, String
   property :audio_sample_rate, String
   property :position, Integer
-  property :updated_at, DateTime
-  property :created_at, DateTime
+  property :updated_at, Time
+  property :created_at, Time
   
   def self.warn_if_no_encodings
     if Profile.all.empty?

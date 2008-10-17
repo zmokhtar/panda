@@ -20,14 +20,14 @@ class Video
   property :profile, String
   property :profile_title, String
   property :player, String
-  property :queued_at, DateTime
-  property :started_encoding_at, DateTime
+  property :queued_at, Time
+  property :started_encoding_at, Time
   property :encoding_time, String
   property :encoded_at, String
-  property :last_notification_at, DateTime
+  property :last_notification_at, Time
   property :notification, String
-  property :updated_at, DateTime
-  property :created_at, DateTime
+  property :updated_at, Time
+  property :created_at, Time
   property :thumbnail_position, String
   
   # TODO: state machine for status
