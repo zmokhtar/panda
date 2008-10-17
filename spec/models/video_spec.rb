@@ -2,7 +2,11 @@ require File.join( File.dirname(__FILE__), "..", "spec_helper" )
 
 describe Video do
   before :each do
+    @uuid = UUID.new
+    UUID.stub!(:new).and_return(@uuid)
+    
     @video = mock_video
+    @profile = mock_profile(:id => 'profile1')
     
     Panda::Config.use do |p|
       p[:private_tmp_path] = '/tmp'
@@ -337,39 +341,76 @@ describe Video do
   
   # def read_metadata
   
-  # Also test create_encoding_for_profile(p) and find_encoding_for_profile(p)
-  it "should create profiles when add_to_queue is called" do
-    profile = mock_profile
-    Profile.should_receive(:query).twice.and_return([mock_profile])
-    Video.should_receive(:query).with("['parent' = 'abc'] intersection ['profile' = 'profile1']").and_return([])
-    # We didn't find a video, so the method will create one now
+  describe "add_to_queue" do
+    before(:each) do
+      Profile.stub!(:all).and_return([mock_profile(:id => 'profile1')])
+    end
+    it "should die if profile is empty" do
+      Profile.should_receive(:all).and_return([])
+      Merb.logger.should_receive(:error).
+        with("There are no encoding profiles!")
+
+      @video.should_receive(:find_encoding_for_profile).exactly(0).times
+      @video.should_receive(:create_encoding_for_profile).exactly(0).times
+
+      @video.add_to_queue
+    end
+
+    it "should call create_encoding_for_profile if find_encoding_for_profile returns empty" do
+      @video.should_receive(:find_encoding_for_profile).and_return([])
+      @video.should_receive(:create_encoding_for_profile)
+
+      @video.add_to_queue
+    end
+
+    it "should not call create_encoding_for_profile if find_encoding_for_profile returns encodings" do
+      @video.should_receive(:find_encoding_for_profile).
+        and_return([mock_video])
+      @video.should_receive(:create_encoding_for_profile).exactly(0).times
+
+      @video.add_to_queue
+    end
+  end
+
+  describe "find_encoding_for_profile" do
+    it "should return parent video with specified profile" do
+      Video.should_receive(:all).
+        with(:parent => @video.id, :profile => @profile.id)
+      @video.find_encoding_for_profile(@profile)
+    end
+  end
+
+  describe "create_encoding_for_profile" do
+    before(:each) do
+      @encoding = @video.create_encoding_for_profile(@profile)
+    end
+    it "should create encoding with id, status, and filename" do
+      @encoding.should be_an_instance_of(Video)
+      @encoding.should_receive(:save)
+      @encoding.id.should == @uuid
+      @encoding.status.should == 'queued'
+      @encoding.filename.should == "#{encoding.id}.#{@profile.container}"
+    end
+
+    it "should assign attributes from current video" do
+      @encoding.original_filename.should == @video.original_filename
+      @encoding.duration.should == @video.duration
+    end
     
-    encoding = Video.new(:id => 'xyz')
-    encoding.should_receive(:status=).with("queued")
-    encoding.should_receive(:filename=).with("xyz.flv")
-    
-    # Attrs from the parent video
-    encoding.should_receive(:parent=).with("abc")
-    encoding.should_receive(:original_filename=).with("original_filename.mov")
-    encoding.should_receive(:duration=).with(100)
-    
-    # Attrs from the profile
-    encoding.should_receive(:profile=).with("profile1")
-    encoding.should_receive(:profile_title=).with("Flash video HI")
-    
-    encoding.should_receive(:container=).with("flv")
-    encoding.should_receive(:width=).with(480)
-    encoding.should_receive(:height=).with(360)
-    encoding.should_receive(:video_bitrate=).with(400)
-    encoding.should_receive(:fps=).with(24)
-    encoding.should_receive(:audio_bitrate=).with(48)
-    encoding.should_receive(:player=).with("flash")
-    
-    encoding.should_receive(:save)
-    
-    Video.should_receive(:new).and_return(encoding)
-    
-    @video.add_to_queue
+    it "should assign attributes from profile" do
+      @encoding.original_filename.should == @video.original_filename
+      @encoding.duration.should == @video.duration
+      @encoding.container.should == @profile.container
+      @encoding.width.should == @profile.width
+      @encoding.height.should == @profile.height
+      @encoding.video_codec.should == @profile.video_codec
+      @encoding.video_bitrate.should == @profile.video_bitrate
+      @encoding.fps.should == @profile.fps
+      @encoding.audio_codec.should == @profile.audio_codec
+      @encoding.audio_bitrate.should == @profile.audio_bitrate
+      @encoding.audio_sample_rate.should == @profile.audio_sample_rate
+      @encoding.player.should == @profile.player
+    end
   end
 
   # def show_response
@@ -569,7 +610,7 @@ describe Video do
   
   private
   
-    def mock_profile
+    def mock_profile(attrs={})
       Profile.new(
         {
           :id => 'profile1',
@@ -582,7 +623,7 @@ describe Video do
           :fps => 24, 
           :position => 1, 
           :player => "flash"
-        }
+        }.merge(attrs)
       )
     end
   
