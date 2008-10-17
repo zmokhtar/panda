@@ -382,14 +382,18 @@ describe Video do
 
   describe "create_encoding_for_profile" do
     before(:each) do
+      # This part is required to prevent accessing database  at encoding.save
+      @encoding_video = Video.new
+      @encoding_video.stub!(:save)
+      Video.stub!(:new).and_return(@encoding_video)
+      
       @encoding = @video.create_encoding_for_profile(@profile)
     end
     it "should create encoding with id, status, and filename" do
       @encoding.should be_an_instance_of(Video)
-      @encoding.should_receive(:save)
       @encoding.id.should == @uuid
       @encoding.status.should == 'queued'
-      @encoding.filename.should == "#{encoding.id}.#{@profile.container}"
+      @encoding.filename.should == "#{@encoding.id}.#{@profile.container}"
     end
 
     it "should assign attributes from current video" do
