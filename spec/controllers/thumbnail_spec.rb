@@ -6,7 +6,7 @@ describe Thumbnail do
     @video = mock(Video)
     @video.stub!(:filename).and_return('')
     @video.stub!(:key).and_return('123')
-    Video.stub!(:find).with(@video.filename).and_return(@video)
+    Video.stub!(:get).with(@video.filename).and_return(@video)
     @clipping = mock(Clipping)
     @clipping.stub!(:changeable?).and_return(true)
     @video.stub!(:clipping).and_return(@clipping)
