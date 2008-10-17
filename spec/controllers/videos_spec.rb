@@ -38,13 +38,14 @@ require File.join(File.dirname(__FILE__), '..', 'spec_helper.rb')
 describe Videos, "form action" do
   before(:each) do
     @video = Video.new
-    @video.key = 'abc'
+    @video.id = 'abc'
   end
   
   it "should return a nice error when the video can't be found" do
-    Video.should_receive(:get).with('qrs').and_raise(Amazon::SDB::RecordNotFoundError)
+    Video.should_receive(:get).with('qrs').
+      and_raise(DataMapper::ObjectNotFoundError)
     @c = get("/videos/qrs/form")
-    @c.body.should match(/RecordNotFoundError/)
+    @c.body.should match(/ObjectNotFoundError/)
   end
 end
 
@@ -94,12 +95,12 @@ describe Videos, "upload action" do
     @c.status.should == 404
   end
   
-  # Amazon::SDB::RecordNotFoundError
-  
+  # DataMapper::ObjectNotFoundError
+
   it "should raise RecordNotFoundError and return 404 when no record is found in SimpleDB" do 
-    Video.stub!(:get).with("abc").and_raise(Amazon::SDB::RecordNotFoundError)
+    Video.stub!(:get).with("abc").and_raise(DataMapper::ObjectNotFoundError)
     @c = multipart_post(@video_upload_url, @video_upload_params)
-    @c.body.should match(/RecordNotFoundError/)
+    @c.body.should match(/ObjectNotFoundError/)
     @c.status.should == 404
   end
   
