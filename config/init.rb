@@ -37,7 +37,7 @@ Panda::Config.check
 Merb::BootLoader.after_app_loads do
   unless Merb.environment == "test"
     require "config" / "aws"
-    require "config" / "mailer"
+    require "config" / "mailer" if Panda::Config[:notification_email]
   end
   
   Store = case Panda::Config[:videos_store]
