@@ -26,3 +26,9 @@
   
 :rake:
   <<: *defaults
+
+:encoder:
+  <<: *defaults
+
+:notifier:
+  <<: *defaults
