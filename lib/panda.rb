@@ -12,7 +12,7 @@ module Panda
       end
       
       def create_sdb_domains
-        %w{sdb_videos_domain sdb_users_domain sdb_profiles_domain}.map do |d|
+        %w{sdb_domain}.map do |d|
           Panda::Setup.create_sdb_domain(Panda::Config[d.to_sym])
         end
       end
@@ -57,7 +57,7 @@ module Panda
         check_present(:upload_redirect_url)
         check_present(:state_update_url)
         
-        %w{sdb_videos_domain sdb_users_domain sdb_profiles_domain}.each do |d|
+        %w{sdb_domain}.each do |d|
           check_present(d.to_sym)
         end
       end
