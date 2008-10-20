@@ -4,7 +4,7 @@ module Panda
   class Setup
     class << self
       def create_s3_bucket
-        AWS::S3::Bucket.create(Panda::Config[:s3_videos_bucket])
+        S3Store.create_bucket
       end
       
       def create_sdb_domain(name)

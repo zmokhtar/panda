@@ -1,4 +1,4 @@
-# merb -r "panda/lib/notifier.rb"
+# merb -r "panda/bin/notifier.rb"
 
 # How notifications work:
 # Once a video has been encoded its next_notification field will be set to the current time. It will then be returned by Video.outstanding_notifications and picked up by the notifier, which will then call send_notification on its parent.
