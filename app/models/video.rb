@@ -165,7 +165,6 @@ class Video < SimpleDB::Base
       flashvars.height = "#{self.height}";
       flashvars.fullscreen = "true";
       flashvars.controlbar = "over";
-      #{'flashvars.streamscript = "lighttpd";' if Panda::Config[:videos_store] == :filesystem }
       var params = {wmode:"transparent",allowfullscreen:"true"};
       var attributes = {};
       attributes.align = "top";
