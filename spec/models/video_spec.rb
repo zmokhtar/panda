@@ -2,9 +2,6 @@ require File.join( File.dirname(__FILE__), "..", "spec_helper" )
 
 describe Video do
   before :each do
-    @uuid = UUID.new
-    UUID.stub!(:new).and_return(@uuid)
-    
     @video = mock_video
     @profile = mock_profile(:id => 'profile1')
     
@@ -20,18 +17,49 @@ describe Video do
     Store.stub!(:delete).and_return(true)
   end
   
+  describe "create_empty" do
+    it "should create and save video" do
+      lambda { Video.create_empty }.should change { Video.all.size }.by(1)
+    end
+    
+    it "should return the empty video" do
+      video = Video.create_empty
+      video.should be_empty
+    end
+  end
+  
   describe "clipping" do
     it "should return a clipping" do
       @video.clipping.should be_kind_of(Clipping)
     end
   end
   
+  describe "clipping" do
+    it "should return an array of clippings for available positions" do
+      @video.clippings.should be_kind_of(Array)
+      @video.clippings.first.should be_kind_of(Clipping)
+    end
+  end
+  
   # Classification
   # ==============
   
-  it "encoding? returns false if video is original" do
-    @video.status = 'original'
-    @video.encoding?.should be_false
+  describe "encoding? or parent?" do
+    it "should be encoding if status is queued, processing, success, error" do
+      %w{queued processing success error}.each do |status|
+        @video.status = status
+        @video.parent?.should be_false
+        @video.encoding?.should be_true
+      end
+    end
+    
+    it "should be parent if status is original, empty" do
+      %w{original empty}.each do |status|
+        @video.status = status
+        @video.parent?.should be_true
+        @video.encoding?.should be_false
+      end
+    end
   end
   
   # Finders
@@ -389,9 +417,8 @@ describe Video do
       
       @encoding = @video.create_encoding_for_profile(@profile)
     end
-    it "should create encoding with id, status, and filename" do
+    it "should create queued encoding" do
       @encoding.should be_an_instance_of(Video)
-      @encoding.id.should == @uuid
       @encoding.status.should == 'queued'
       @encoding.filename.should == "#{@encoding.id}.#{@profile.container}"
     end
