@@ -29,7 +29,7 @@ class SimpleDB
     end
 
     def initialize(key=nil, multimap_or_hash=nil, new_record=true)
-      self.key = (key || UUID.new)
+      self.key = key || (UUID.respond_to?(:generate) ? UUID.generate : UUID.new)
       self.attributes = multimap_or_hash.nil? ? Amazon::SDB::Multimap.new : (multimap_or_hash.kind_of?(Hash) ? Amazon::SDB::Multimap.new(multimap_or_hash) : multimap_or_hash)
       @new_record = new_record
     end
