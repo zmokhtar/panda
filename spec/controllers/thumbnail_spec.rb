@@ -43,6 +43,11 @@ describe Thumbnail do
       @video.stub!(:successful_encodings).and_return([@encoding])
     end
     
+    after :each do
+      # Wait for the run later block!
+      sleep 0.2
+    end
+    
     it "should update thumbnail position" do
       @video.should_receive(:thumbnail_position=)
       @video.should_receive(:save)
