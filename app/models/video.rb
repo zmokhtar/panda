@@ -43,10 +43,6 @@ class Video
     return video
   end
   
-  def to_sym
-    'videos'
-  end
-  
   def clipping(position = nil)
     Clipping.new(self, position)
   end
@@ -71,9 +67,12 @@ class Video
   # Finders
   # =======
   
-  # Only parent videos (no encodings)
+  # Original videos sorted by creation date (newest first)
   def self.all_originals
-    self.all(:status => "original", :order => ["created_at"])
+    # This fails with simpledb adaptor (sort order is random it seems)
+    # self.all(:status => "original", :order => [:created_at.desc])
+    
+    self.all(:status => "original").sort_by { |o| o.created_at }.reverse
   end
   
   def self.queued_encodings

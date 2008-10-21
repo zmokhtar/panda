@@ -26,6 +26,10 @@ describe Video do
       video = Video.create_empty
       video.should be_empty
     end
+
+    after(:all) do
+      Video.all.each{|v| v.destroy }
+    end
   end
   
   describe "clipping" do
@@ -62,46 +66,60 @@ describe Video do
     end
   end
   
-  # Finders
-  # =======
-  
-  describe "self.all_originals" do
-    it "should return original videos ordered by created_at" do
-      Video.should_receive(:all).with(
-                                      :status => 'original', 
-                                      :order => ["created_at"]
-                                      )
-      Video.all_originals
-    end
-  end
-
-
-  describe "self.queued_encodings" do
-    it "should return videos in processing or queued" do
-      Video.should_receive(:all).with(:status => 'processing').
-                                 and_return([mock_video])
-      Video.should_receive(:all).with(:status => 'queued').
-                                 and_return([mock_video])
-
-      Video.queued_encodings
-    end
-  end
-  
-  it "self.next_job" do
-    Video.should_receive(:all).with(:status => 'queued').and_return([])
-    Video.next_job
-  end
-  
-  it "parent_video" do
-    @video.parent = 'xyz'
-    Video.should_receive(:get).with('xyz')
+  describe "Finders" do
     
-    @video.parent_video
-  end
-  
-  it "encodings" do 
-    Video.should_receive(:all).with(:parent => 'abc')
-    @video.encodings
+    before :all do
+      @old = Time.now - 100
+      @new = Time.now
+      create_video(:status => 'original', :created_at => @old)
+      create_video(:status => 'original', :created_at => @new)
+      create_video(:status => 'pending', :created_at => @new)
+    end
+    
+    after(:all) do
+      Video.all.each{|v| v.destroy }
+    end
+    
+    describe "self.all_originals" do
+      it "should return original video" do
+        Video.all_originals.should have(2).videos
+      end
+      
+      it "should order by created_at (newest first)" do
+        originals = Video.all_originals
+        originals.collect(&:created_at).should == 
+          originals.sort_by { |o| o.created_at }.reverse.collect(&:created_at)
+      end
+    end
+
+    describe "self.queued_encodings" do
+      it "should return videos in processing or queued" do
+        Video.should_receive(:all).with(:status => 'processing').
+                                   and_return([mock_video])
+        Video.should_receive(:all).with(:status => 'queued').
+                                   and_return([mock_video])
+
+        Video.queued_encodings
+      end
+    end
+
+    it "self.next_job" do
+      Video.should_receive(:all).with(:status => 'queued').and_return([])
+      Video.next_job
+    end
+
+    it "parent_video" do
+      @video.parent = 'xyz'
+      Video.should_receive(:get).with('xyz')
+
+      @video.parent_video
+    end
+
+    it "encodings" do 
+      Video.should_receive(:all).with(:parent => 'abc')
+      @video.encodings
+    end
+    
   end
   
   # Attr helpers
@@ -711,6 +729,10 @@ describe Video do
         :height => 360
       }.merge(attrs)
     )
+  end
+  
+  def create_video(attrs = {})
+    mock_video(attrs.merge(:id => UUID.new)).save
   end
   
   def mock_encoding_flv_flash(attrs={})
