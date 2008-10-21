@@ -35,7 +35,7 @@ require 'local_store'
 Panda::Config.check
 
 Merb::BootLoader.after_app_loads do
-  unless Merb.environment == "test"
+  unless Merb.environment =~ /test/
     require "config" / "aws"
     require "config" / "mailer"
   end
@@ -51,6 +51,6 @@ Merb::BootLoader.after_app_loads do
   
   LocalStore.ensure_directories_exist
   
-  Profile.warn_if_no_encodings unless Merb.env == 'test'
+  Profile.warn_if_no_encodings unless Merb.env =~ /test/
   
 end
