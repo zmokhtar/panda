@@ -1,40 +1,36 @@
-# Make the app's "gems" directory a place where gems are loaded from
-Gem.clear_paths
-Gem.path.unshift(Merb.root / "gems")
+# Go to http://wiki.merbivore.com/pages/init-rb
 
 # Autoload from lib
 $LOAD_PATH.unshift(Merb.root / "lib")
 Merb.push_path(:lib, Merb.root / "lib") # uses **/*.rb as path glob.
 
+require 'config/dependencies.rb'
+ 
+use_orm :datamapper
+use_test :rspec
+use_template_engine :erb
+ 
 Merb::Config.use do |c|
+  c[:use_mutex] = false
+  
   c[:session_id_key] = 'panda'
   c[:session_secret_key]  = '4d5e9b90d9e92c236a2300d718059aef3a9b9cbe'
   c[:session_store] = 'cookie'
 end
-
-use_orm :datamapper
-
-# Load Panda config
-require "config" / "panda_init"
-
-# Gem dependencies
-dependency 'merb-assets'
-dependency 'merb-mailer'
-dependency 'merb_helpers'
-dependency 'uuid'
-dependency 'amazon_sdb'
-dependency 'activesupport'
-dependency 'rvideo'
-dependency 'dm-timestamps'
-
-# Dependencies in lib - not autoloaded in time so require them explicitly
-require 'simple_db'
-require 'local_store'
-
-# Check panda config
-Panda::Config.check
-
+ 
+Merb::BootLoader.before_app_loads do
+  # This will get executed after dependencies have been loaded but before your app's classes have loaded.
+  
+  # Load Panda config
+  require "config" / "panda_init"
+  
+  # Check panda config
+  Panda::Config.check
+end
+ 
 Merb::BootLoader.after_app_loads do
+  # This will get executed after your app's classes have been loaded.
+  
   unless Merb.environment =~ /test/
     require "config" / "aws"
     require "config" / "mailer"
@@ -52,5 +48,4 @@ Merb::BootLoader.after_app_loads do
   LocalStore.ensure_directories_exist
   
   Profile.warn_if_no_encodings unless Merb.env =~ /test/
-  
 end
