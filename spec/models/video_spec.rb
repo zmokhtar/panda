@@ -2,9 +2,6 @@ require File.join( File.dirname(__FILE__), "..", "spec_helper" )
 
 describe Video do
   before :each do
-    @uuid = UUID.new
-    UUID.stub!(:new).and_return(@uuid)
-    
     @video = mock_video
     @profile = mock_profile(:id => 'profile1')
     
@@ -20,60 +17,109 @@ describe Video do
     Store.stub!(:delete).and_return(true)
   end
   
+  describe "create_empty" do
+    it "should create and save video" do
+      lambda { Video.create_empty }.should change { Video.all.size }.by(1)
+    end
+    
+    it "should return the empty video" do
+      video = Video.create_empty
+      video.should be_empty
+    end
+
+    after(:all) do
+      Video.all.each{|v| v.destroy }
+    end
+  end
+  
   describe "clipping" do
     it "should return a clipping" do
       @video.clipping.should be_kind_of(Clipping)
     end
   end
   
+  describe "clipping" do
+    it "should return an array of clippings for available positions" do
+      @video.clippings.should be_kind_of(Array)
+      @video.clippings.first.should be_kind_of(Clipping)
+    end
+  end
+  
   # Classification
   # ==============
   
-  it "encoding? returns false if video is original" do
-    @video.status = 'original'
-    @video.encoding?.should be_false
-  end
-  
-  # Finders
-  # =======
-  
-  describe "self.all_originals" do
-    it "should return original videos ordered by created_at" do
-      Video.should_receive(:all).with(
-                                      :status => 'original', 
-                                      :order => ["created_at"]
-                                      )
-      Video.all_originals
+  describe "encoding? or parent?" do
+    it "should be encoding if status is queued, processing, success, error" do
+      %w{queued processing success error}.each do |status|
+        @video.status = status
+        @video.parent?.should be_false
+        @video.encoding?.should be_true
+      end
     end
-  end
-
-
-  describe "self.queued_encodings" do
-    it "should return videos in processing or queued" do
-      Video.should_receive(:all).with(:status => 'processing').
-                                 and_return([mock_video])
-      Video.should_receive(:all).with(:status => 'queued').
-                                 and_return([mock_video])
-
-      Video.queued_encodings
-    end
-  end
-  
-  it "self.next_job" do
-    Video.should_receive(:all).with(:status => 'queued').and_return([])
-    Video.next_job
-  end
-  
-  it "parent_video" do
-    @video.parent = 'xyz'
-    Video.should_receive(:get).with('xyz')
     
-    @video.parent_video
+    it "should be parent if status is original, empty" do
+      %w{original empty}.each do |status|
+        @video.status = status
+        @video.parent?.should be_true
+        @video.encoding?.should be_false
+      end
+    end
   end
   
-  it "encodings" do 
-    Video.should_receive(:all).with(:parent => 'abc')
-    @video.encodings
+  describe "Finders" do
+    
+    before :all do
+      @old = Time.now - 100
+      @new = Time.now
+      create_video(:status => 'original', :created_at => @old)
+      create_video(:status => 'original', :created_at => @new)
+      create_video(:status => 'pending', :created_at => @new)
+    end
+    
+    after(:all) do
+      Video.all.each{|v| v.destroy }
+    end
+    
+    describe "self.all_originals" do
+      it "should return original video" do
+        Video.all_originals.should have(2).videos
+      end
+      
+      it "should order by created_at (newest first)" do
+        originals = Video.all_originals
+        originals.collect(&:created_at).should == 
+          originals.sort_by { |o| o.created_at }.reverse.collect(&:created_at)
+      end
+    end
+
+    describe "self.queued_encodings" do
+      it "should return videos in processing or queued" do
+        Video.should_receive(:all).with(:status => 'processing').
+                                   and_return([mock_video])
+        Video.should_receive(:all).with(:status => 'queued').
+                                   and_return([mock_video])
+
+        Video.queued_encodings
+      end
+    end
+
+    it "self.next_job" do
+      Video.should_receive(:all).with(:status => 'queued').and_return([])
+      Video.next_job
+    end
+
+    it "parent_video" do
+      @video.parent = 'xyz'
+      Video.should_receive(:get).with('xyz')
+
+      @video.parent_video
+    end
+
+    it "encodings" do 
+      Video.should_receive(:all).with(:parent => 'abc')
+      @video.encodings
+    end
+    
   end
   
   # Attr helpers
@@ -389,9 +435,8 @@ describe Video do
       
       @encoding = @video.create_encoding_for_profile(@profile)
     end
-    it "should create encoding with id, status, and filename" do
+    it "should create queued encoding" do
       @encoding.should be_an_instance_of(Video)
-      @encoding.id.should == @uuid
       @encoding.status.should == 'queued'
       @encoding.filename.should == "#{@encoding.id}.#{@profile.container}"
     end
@@ -416,8 +461,44 @@ describe Video do
       @encoding.player.should == @profile.player
     end
   end
-
-  # def show_response
+  
+  describe "show_response" do
+    before :each do
+      @encoding = Video.new
+      @encoding.filename = 'abc.flv'
+      @encoding.id = '1234'
+      
+      @video.stub!(:encodings).and_return([])
+    end
+    
+    it "should contain a hash of parameters for the video" do
+      @video.show_response.should == {
+        :video => {
+          :thumbnail=>"abc.mov_50_thumb.jpg", 
+          :height=>360, 
+          :filename=>"abc.mov", 
+          :screenshot=>"abc.mov_50.jpg", 
+          :status=>"original", 
+          :duration=>100, 
+          :original_filename=>"original_filename.mov", 
+          :width=>480, 
+          :encodings=> [], 
+          :id=>"abc"
+        }
+      }
+    end
+    
+    it "should contain an array of encodings if defined" do
+      @video.stub!(:encodings).and_return([@encoding])
+      
+      @video.show_response[:video][:encodings].first.should == {
+        :video => {
+          :status=>nil, 
+          :id=>"1234"
+        }
+      }
+    end
+  end
   
   it "should return correct API create response hash" do
     @video.create_response.should == {:video => {:id => 'abc'}}
@@ -648,6 +729,10 @@ describe Video do
         :height => 360
       }.merge(attrs)
     )
+  end
+  
+  def create_video(attrs = {})
+    mock_video(attrs.merge(:id => UUID.new)).save
   end
   
   def mock_encoding_flv_flash(attrs={})

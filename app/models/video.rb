@@ -43,10 +43,6 @@ class Video
     return video
   end
   
-  def to_sym
-    'videos'
-  end
-  
   def clipping(position = nil)
     Clipping.new(self, position)
   end
@@ -71,9 +67,12 @@ class Video
   # Finders
   # =======
   
-  # Only parent videos (no encodings)
+  # Original videos sorted by creation date (newest first)
   def self.all_originals
-    self.all(:status => "original", :order => ["created_at"])
+    # This fails with simpledb adaptor (sort order is random it seems)
+    # self.all(:status => "original", :order => [:created_at.desc])
+    
+    self.all(:status => "original").sort_by { |o| o.created_at }.reverse
   end
   
   def self.queued_encodings
@@ -186,7 +185,6 @@ class Video
       flashvars.height = "#{self.height}";
       flashvars.fullscreen = "true";
       flashvars.controlbar = "over";
-      #{'flashvars.streamscript = "lighttpd";' if Panda::Config[:videos_store] == :filesystem }
       var params = {wmode:"transparent",allowfullscreen:"true"};
       var attributes = {};
       attributes.align = "top";
@@ -376,10 +374,13 @@ class Video
   # API
   # ===
   
+  # Hash of paramenters for video and encodings when video.xml/yaml requested.
+  # 
+  # See the specs for an example of what this returns
+  # 
   def show_response
-    # :filename, :original_filename, :parent, :status, :duration, :container, :width, :height, :video_codec, :video_bitrate, :fps, :audio_codec, :audio_bitrate, :audio_sample_rate, :profile, :profile_title, :player, :encoding_time, :encoded_at, :updated_at, :created_at
-    
-    r = {:video => {
+    r = {
+      :video => {
         :id => self.id,
         :status => self.status
       }
@@ -387,7 +388,11 @@ class Video
     
     # Common attributes for originals and encodings
     if self.status == 'original' or self.encoding?
-      r[:video].merge!([:filename, :original_filename, :screenshot, :thumbnail, :width, :height, :duration].map_to_hash {|k| {k => self.send(k)} })
+      [:filename, :original_filename, :width, :height, :duration].each do |k|
+        r[:video][k] = self.send(k)
+      end
+      r[:video][:screenshot]  = self.clipping.filename(:screenshot)
+      r[:video][:thumbnail]   = self.clipping.filename(:thumbnail)
     end
     
     # If the video is a parent, also return the data for all its encodings
@@ -397,7 +402,9 @@ class Video
     
     # Reutrn extra attributes if the video is an encoding
     if self.encoding?
-      r[:video].merge!([:parent, :profile, :profile_title, :encoded_at, :encoding_time].map_to_hash {|k| {k => self.send(k)} })
+      r[:video].merge! \
+        [:parent, :profile, :profile_title, :encoded_at, :encoding_time].
+          map_to_hash { |k| {k => self.send(k)} }
     end
     
     return r

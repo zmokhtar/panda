@@ -17,8 +17,20 @@
   :secret_key: <%= Panda::Config[:secret_access_key] %>
 
 :test:
-  <<: *defaults
-  :database: panda_test
+  :adapter: simpledb
+  :domain: panda_test
+  :host: localhost
+  :url: http://localhost:8087
+  :access_key: test
+  :secret_key: test
+
+# :test:
+#   :adapter: mysql
+#   :database: panda_test
+#   :username: root
+#   :password: 
+#   :host: localhost
+#   :encoding: utf8
 
 :production:
   <<: *defaults
