@@ -11,10 +11,12 @@ require 'aws_sdb'
 @server || begin
   @server = SimplerDB::Server.new(8097)
   @thread = Thread.new { @server.start }
-  AwsSdb::Service.new(:access_key_id => '1', :secret_access_key => '2', :url => 'http://localhost:8097').create_domain("panda_test")
 end
 
 Merb.start_environment(:testing => true, :adapter => 'runner', :environment => ENV['MERB_ENV'] || 'test')
+
+# This creates tabes if using SQL or domains if using simpledb
+DataMapper.auto_migrate!
 
 Spec::Runner.configure do |config|
   config.include(Merb::Test::ViewHelper)
