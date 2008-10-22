@@ -88,8 +88,8 @@ EXTSTATIC =
 STATIC_LIB = 
 
 RUBYCOMMONDIR = $(sitedir)$(target_prefix)
-RUBYLIBDIR = /Users/martyn/code/p/panda/gems/gems/hpricot-0.6.161/lib/universal-darwin9.0$(target_prefix)
-RUBYARCHDIR = /Users/martyn/code/p/panda/gems/gems/hpricot-0.6.161/lib/universal-darwin9.0$(target_prefix)
+RUBYLIBDIR = /Users/makoto/work/nbb/pandas/panda/gems/gems/hpricot-0.6.161/lib/universal-darwin9.0$(target_prefix)
+RUBYARCHDIR = /Users/makoto/work/nbb/pandas/panda/gems/gems/hpricot-0.6.161/lib/universal-darwin9.0$(target_prefix)
 
 TARGET_SO     = $(DLLIB)
 CLEANLIBS     = $(TARGET).bundle $(TARGET).il? $(TARGET).tds $(TARGET).map
