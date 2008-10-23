@@ -2,7 +2,7 @@ class Video
   include DataMapper::Resource
   include LocalStore
   
-  property :id, String, :key => true
+  property :id, UUIDIndex, :key => true
   property :filename, String
   property :original_filename, String
   property :parent, String
@@ -36,7 +36,6 @@ class Video
   
   def self.create_empty
     video = Video.new
-    video.id = UUID.new
     video.status = 'empty'
     video.save
     
@@ -320,7 +319,6 @@ class Video
   
   def create_encoding_for_profile(p)
     encoding = Video.new
-    encoding.id = UUID.new
     encoding.status = 'queued'
     encoding.filename = "#{encoding.id}.#{p.container}"
     

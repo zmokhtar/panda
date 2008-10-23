@@ -26,6 +26,8 @@ Merb::BootLoader.before_app_loads do
   
   # Check panda config
   Panda::Config.check
+  
+  require 'data_mapper/types/uuid_index'
 end
  
 Merb::BootLoader.after_app_loads do
