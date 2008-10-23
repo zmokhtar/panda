@@ -76,7 +76,6 @@ describe Video do
       create_video(:status => 'pending', :created_at => @new)
     end
     
-    
     describe "self.all_originals" do
       it "should return original video" do
         Video.all_originals.should have(2).videos
@@ -740,9 +739,9 @@ describe Video do
   end
   
   def create_video(attrs = {})
-    vid = mock_video(attrs.merge(:id => UUID.generate))
-    vid.save
-    vid
+    returning(mock_video(attrs.merge(:id => (UUID.respond_to?(:generate) ? UUID.generate : UUID.new)))) do |vid|
+      vid.save
+    end
   end
   
   def mock_encoding_flv_flash(attrs={})
