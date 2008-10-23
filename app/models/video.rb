@@ -86,7 +86,7 @@ class Video
     # TODO: Doesn't work
     # self.first(:status => "queued")
     
-    self.all(:status => "queued").to_a.first
+    self.all(:status => "queued").sort_by { |o| o.created_at }.first
   end
   
   def self.outstanding_notifications

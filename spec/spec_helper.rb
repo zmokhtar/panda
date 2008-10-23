@@ -16,7 +16,20 @@ end
 Merb.start_environment(:testing => true, :adapter => 'runner', :environment => ENV['MERB_ENV'] || 'test')
 
 # This creates tabes if using SQL or domains if using simpledb
-DataMapper.auto_migrate!
+
+db_config =  File.open('config/database.yml'){|yf| YAML::load(yf)}[:test]
+
+# Temporary workaround untill I pull auto_migrate from Edward's fork.
+if db_config[:adapter] == 'simpledb'
+  AwsSdb::Service.new(
+    :access_key_id => db_config[:access_key],
+    :secret_access_key => db_config[:secret_key],
+    :url => db_config[:url]
+  ).create_domain('panda_test')
+else
+  DataMapper.auto_migrate!
+end
+
 
 Spec::Runner.configure do |config|
   config.include(Merb::Test::ViewHelper)

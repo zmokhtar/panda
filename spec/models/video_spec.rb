@@ -2,6 +2,9 @@ require File.join( File.dirname(__FILE__), "..", "spec_helper" )
 
 describe Video do
   before :each do
+    # Video.all.destroy! seems not supported at simpledb dm adapter
+    Video.all.each{|v| v.destroy}
+
     @video = mock_video
     @profile = mock_profile(:id => 'profile1')
     
@@ -27,9 +30,6 @@ describe Video do
       video.should be_empty
     end
 
-    after(:all) do
-      Video.all.each{|v| v.destroy }
-    end
   end
   
   describe "clipping" do
@@ -68,7 +68,7 @@ describe Video do
   
   describe "Finders" do
     
-    before :all do
+    before :each do
       @old = Time.now - 100
       @new = Time.now
       create_video(:status => 'original', :created_at => @old)
@@ -76,9 +76,6 @@ describe Video do
       create_video(:status => 'pending', :created_at => @new)
     end
     
-    after(:all) do
-      Video.all.each{|v| v.destroy }
-    end
     
     describe "self.all_originals" do
       it "should return original video" do
@@ -103,10 +100,21 @@ describe Video do
       end
     end
 
-    it "self.next_job" do
-      Video.should_receive(:all).with(:status => 'queued').and_return([])
-      Video.next_job
+    describe "next_job" do
+    
+      it "shoould return first queued encoding ordered by created date" do
+        vid2 = create_video(:status => 'queued', :created_at => 1.days.ago)
+        vid1 = create_video(:status => 'queued', :created_at => 2.days.ago)
+        Video.next_job.should == vid1
+      end
+      
+      it "should retun nil if there are no queued videos" do
+        Video.all.size.should > 0
+        Video.next_job.should be_nil
+      end
+      
     end
+    
 
     it "parent_video" do
       @video.parent = 'xyz'
@@ -732,7 +740,9 @@ describe Video do
   end
   
   def create_video(attrs = {})
-    mock_video(attrs.merge(:id => UUID.new)).save
+    vid = mock_video(attrs.merge(:id => UUID.generate))
+    vid.save
+    vid
   end
   
   def mock_encoding_flv_flash(attrs={})
