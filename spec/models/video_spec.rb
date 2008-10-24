@@ -119,18 +119,21 @@ describe Video do
     end
     
     describe "parent_video" do
+      before(:all) do
+        @parent_video_object = Video.all_originals.first
+        @parent_video_object.id = 'xyz'
+        @parent_video_object.save
+      end
+
       it "should raise error if the video itself is parent" do
-        parent_video_object = Video.all_originals.first
-        lambda { parent_video_object.parent_video }.should
+        lambda { @parent_video_object.parent_video }.should
          raise_error(RuntimeError, "Parent does not have parent")
       end
       
       it "should return parent video where parent id matches" do
-        parent_video_object = mock_video(:id => 'xyz')
-        parent_video_object.save
         @video.parent = 'xyz'
         @video.status = 'queued'
-        @video.parent_video.should == parent_video_object
+        @video.parent_video.should == @parent_video_object
       end
     end
 
