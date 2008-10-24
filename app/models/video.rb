@@ -95,7 +95,6 @@ class Video
   end
   
   def parent_video
-    raise "Parent does not have parent" if self.parent?
     self.class.get(self.parent)
   end
   

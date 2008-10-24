@@ -121,7 +121,6 @@ describe Video do
     describe "parent_video" do
       before(:all) do
         @parent_video_object = Video.all_originals.first
-        @parent_video_object.id = 'xyz'
         @parent_video_object.save
       end
 
@@ -131,7 +130,7 @@ describe Video do
       end
       
       it "should return parent video where parent id matches" do
-        @video.parent = 'xyz'
+        @video.parent = @parent_video_object.id
         @video.status = 'queued'
         @video.parent_video.should == @parent_video_object
       end
