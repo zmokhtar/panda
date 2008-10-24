@@ -15,7 +15,10 @@ dependency 'uuid', '2.0.1'
 dependency 'amazon_sdb'
 dependency 'activesupport', '2.1.1'
 dependency 'rvideo'
-dependency 'aws-sdb' do
+dependency 'aws-s3', '0.5.1' do
+  require 'aws/s3'
+end
+dependency 'aws-sdb', '0.3.1' do
   require 'aws_sdb'
 end
 
