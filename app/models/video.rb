@@ -25,7 +25,13 @@ class Video
   property :encoding_time, String
   property :encoded_at, String
   property :last_notification_at, Time
-  property :notification, String
+  # This is to fill the gap of different behavior between MySQL
+  # and SimpleDB in use of null.
+  # At MySQL, it won't pick up NULL: eg, notification.not 'success'
+  # If you try to search non nil: eg, notification.not = nil
+  # Then SimpleDB fails as Simpledb can not be searchable by nil
+  # As a workaround, I forced default as empty string
+  property :notification, String, :default => '', :nullable => false
   property :updated_at, Time
   property :created_at, Time
   property :thumbnail_position, String
@@ -91,7 +97,7 @@ class Video
   def self.outstanding_notifications
     # TODO: Do this in one query
     self.all(:notification.not => "success", :notification.not => "error", :status => "success") +
-    self.all(:notification.not => "success", :notification.not => "error", :status => "error")
+    self.all(:notification.not => "success", :notification.not => "error", :status => "error") 
   end
   
   def parent_video

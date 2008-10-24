@@ -100,6 +100,18 @@ describe Video do
         queued.each{|q| queued_status.should be_include(q.status)}
       end
     end
+    
+    describe "outstanding_notifications" do
+      it "should return success/error videos, but notification is not set" do
+        create_video(:status => 'success', :notification => 'success')
+        create_video(:status => 'error', :notification => 'error')
+        create_video(:status => 'success',:notification => '')
+        create_video(:status => 'error', :notification => '')
+        create_video(:status => 'success')
+        create_video(:status => 'error')
+        Video.outstanding_notifications.should have(4).videos
+      end
+    end
 
     describe "next_job" do
       it "shoould return first queued encoding ordered by created date" do
