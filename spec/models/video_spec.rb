@@ -134,11 +134,12 @@ describe Video do
       end
     end
 
-    it "encodings" do 
-      Video.should_receive(:all).with(:parent => 'abc')
-      @video.encodings
+    describe "encoding" do
+      it "should return all videos which belongs to its parent " do 
+        create_encodings(@video.id, @profile, 3)
+        @video.encodings.should have(3).videos
+      end
     end
-    
   end
   
   # Attr helpers
@@ -754,6 +755,12 @@ describe Video do
     vid = mock_video(attrs.merge(:id => UUID.generate))
     vid.save
     vid
+  end
+  
+  def create_encodings(parent_id, profile, number)
+    number.times do
+      create_video(:parent => parent_id).create_encoding_for_profile(profile)
+    end
   end
   
   def mock_encoding_flv_flash(attrs={})
