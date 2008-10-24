@@ -148,10 +148,27 @@ describe Video do
       end
     end
 
-    describe "encoding" do
+    describe "encodings" do
       it "should return all videos which belongs to its parent " do 
         create_encodings(@video.id, @profile, 3)
         @video.encodings.should have(3).videos
+      end
+    end
+    
+    describe "successful_encodings" do
+      it "should return successful videos which belongs to its parent"  do
+        @video.id = UUID.generate
+        @video.save
+        create_encodings(@video.id, @profile, 3)
+        # Manually changing status from "queued" to "success"
+        @video.encodings.each{|v| v.status = 'success'; v.save}
+        # But leave one encoding as "error".
+        # NOTE: Need to convert to array (to_a) to be compatible for simpledb
+        error_encording = @video.encodings.to_a.first
+        error_encording.status = 'error'
+        error_encording.save
+        
+        @video.successful_encodings.should have(2).videos
       end
     end
   end
