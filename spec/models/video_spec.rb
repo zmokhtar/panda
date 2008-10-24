@@ -118,10 +118,12 @@ describe Video do
       end
     end
     
-    it "parent_video" do
-      @video.parent = 'xyz'
-      @video.parent_video
-      @video.parent.should == 'xyz'
+    describe "parent_video" do
+      it "should be able to set value" do
+        @video.parent = 'xyz'
+        @video.parent_video
+        @video.parent.should == 'xyz'
+      end
     end
 
     it "encodings" do 
