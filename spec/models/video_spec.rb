@@ -119,10 +119,11 @@ describe Video do
     end
     
     describe "parent_video" do
-      it "should be able to set value" do
+      it "should return video where parent id matches" do
+        parent_video = mock_video(:id => 'xyz')
+        parent_video.save
         @video.parent = 'xyz'
-        @video.parent_video
-        @video.parent.should == 'xyz'
+        @video.parent_video.should == parent_video
       end
     end
 
