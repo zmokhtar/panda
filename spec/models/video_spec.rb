@@ -120,9 +120,8 @@ describe Video do
     
     it "parent_video" do
       @video.parent = 'xyz'
-      Video.should_receive(:get).with('xyz')
-
       @video.parent_video
+      @video.parent.should == 'xyz'
     end
 
     it "encodings" do 
