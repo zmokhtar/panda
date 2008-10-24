@@ -33,8 +33,9 @@ end
 Merb::BootLoader.after_app_loads do
   # This will get executed after your app's classes have been loaded.
   
+  require "config" / "aws"
+  
   unless Merb.environment =~ /test/
-    require "config" / "aws"
     require "config" / "mailer" if Panda::Config[:notification_email]
   end
   

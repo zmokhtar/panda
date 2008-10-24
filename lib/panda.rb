@@ -8,8 +8,7 @@ module Panda
       end
       
       def create_sdb_domain
-        if DataMapper.repository.adapter.is_a? \
-            DataMapper::Adapters::SimpleDBAdapter
+        if DataMapper::Adapters.const_defined?(:SimpleDBAdapter) && DataMapper.repository.adapter.is_a?(DataMapper::Adapters::SimpleDBAdapter)
           SDB_CONNECTION.create_domain(Panda::Config[:sdb_domain])
         else
           DataMapper.auto_migrate!
