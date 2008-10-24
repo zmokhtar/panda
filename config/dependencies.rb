@@ -15,7 +15,9 @@ dependency 'uuid', '2.0.1'
 dependency 'amazon_sdb'
 dependency 'activesupport', '2.1.1'
 dependency 'rvideo'
+dependency 'aws-sdb' do
+  require 'aws_sdb'
+end
 
 # Dependencies in lib - not autoloaded in time so require them explicitly
-require 'simple_db'
 require 'local_store'

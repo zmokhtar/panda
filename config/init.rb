@@ -26,6 +26,8 @@ Merb::BootLoader.before_app_loads do
   
   # Check panda config
   Panda::Config.check
+  
+  require 'data_mapper/types/uuid_index'
 end
  
 Merb::BootLoader.after_app_loads do
@@ -33,7 +35,7 @@ Merb::BootLoader.after_app_loads do
   
   unless Merb.environment =~ /test/
     require "config" / "aws"
-    require "config" / "mailer"
+    require "config" / "mailer" if Panda::Config[:notification_email]
   end
   
   Store = case Panda::Config[:videos_store]
