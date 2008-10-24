@@ -1,13 +1,8 @@
 require File.join( File.dirname(__FILE__), "..", "spec_helper" )
 
 describe Video do
-  before :each do
-    # Video.all.destroy! seems not supported at simpledb dm adapter
-    Video.all.each{|v| v.destroy}
-
-    @video = mock_video
-    @profile = mock_profile(:id => 'profile1')
-    
+  
+  before(:all) do
     Panda::Config.use do |p|
       p[:private_tmp_path] = '/tmp'
       p[:state_update_url] = "http://localhost:4000/videos/$id/status"
@@ -15,6 +10,13 @@ describe Video do
       p[:videos_domain] = "videos.pandastream.com"
       p[:thumbnail_height_constrain] = 125
     end
+    # Video.all.destroy! seems not supported at simpledb dm adapter
+    # Video.all.each{|v| v.destroy}
+  end
+  
+  before :each do
+    @video = mock_video
+    @profile = mock_profile(:id => 'profile1')
     
     Store.stub!(:set).and_return(true)
     Store.stub!(:delete).and_return(true)
@@ -67,19 +69,21 @@ describe Video do
   end
   
   describe "Finders" do
-    
     before :each do
       @old = Time.now - 100
       @new = Time.now
       create_video(:status => 'original', :created_at => @old)
       create_video(:status => 'original', :created_at => @new)
       create_video(:status => 'pending', :created_at => @new)
+      create_video(:status => 'processing', :created_at => @new)
+      create_video(:status => 'queued', :created_at => @new)
     end
     
-    
     describe "self.all_originals" do
+      
       it "should return original video" do
-        Video.all_originals.should have(2).videos
+        originals = Video.all_originals
+        originals.each{|r| r.status.should == 'original'}
       end
       
       it "should order by created_at (newest first)" do
@@ -91,17 +95,13 @@ describe Video do
 
     describe "self.queued_encodings" do
       it "should return videos in processing or queued" do
-        Video.should_receive(:all).with(:status => 'processing').
-                                   and_return([mock_video])
-        Video.should_receive(:all).with(:status => 'queued').
-                                   and_return([mock_video])
-
-        Video.queued_encodings
+        queued_status = ['processing', 'queued']
+        queued = Video.queued_encodings 
+        queued.each{|q| queued_status.should be_include(q.status)}
       end
     end
 
     describe "next_job" do
-    
       it "shoould return first queued encoding ordered by created date" do
         vid2 = create_video(:status => 'queued', :created_at => 1.days.ago)
         vid1 = create_video(:status => 'queued', :created_at => 2.days.ago)
@@ -109,13 +109,12 @@ describe Video do
       end
       
       it "should retun nil if there are no queued videos" do
+        Video.queued_encodings.each{|q| q.destroy}
         Video.all.size.should > 0
         Video.next_job.should be_nil
       end
-      
     end
     
-
     it "parent_video" do
       @video.parent = 'xyz'
       Video.should_receive(:get).with('xyz')
