@@ -69,7 +69,7 @@ describe Video do
   end
   
   describe "Finders" do
-    before :each do
+    before :all do
       @old = Time.now - 100
       @new = Time.now
       create_video(:status => 'original', :created_at => @old)
@@ -106,11 +106,14 @@ describe Video do
         vid2 = create_video(:status => 'queued', :created_at => 1.days.ago)
         vid1 = create_video(:status => 'queued', :created_at => 2.days.ago)
         Video.next_job.should == vid1
+        vid1.destroy
+        vid2.destroy
       end
       
       it "should retun nil if there are no queued videos" do
         Video.queued_encodings.each{|q| q.destroy}
         Video.all.size.should > 0
+        Video.queued_encodings.size.should == 0
         Video.next_job.should be_nil
       end
     end
