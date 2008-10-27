@@ -10,8 +10,6 @@ describe Video do
       p[:videos_domain] = "videos.pandastream.com"
       p[:thumbnail_height_constrain] = 125
     end
-    # Video.all.destroy! seems not supported at simpledb dm adapter
-    # Video.all.each{|v| v.destroy}
   end
   
   before :each do
@@ -80,36 +78,48 @@ describe Video do
     end
     
     describe "self.all_originals" do
+    
+      before(:all) do
+        @originals = Video.all_originals
+      end
       
       it "should return original video" do
-        originals = Video.all_originals
-        originals.each{|r| r.status.should == 'original'}
+        @originals.each{|r| r.status.should == 'original'}
       end
       
       it "should order by created_at (newest first)" do
-        originals = Video.all_originals
-        originals.collect(&:created_at).should == 
-          originals.sort_by { |o| o.created_at }.reverse.collect(&:created_at)
+        @originals.collect(&:created_at).should == 
+          @originals.sort_by { |o| o.created_at }.reverse.collect(&:created_at)
       end
     end
 
     describe "self.queued_encodings" do
       it "should return videos in processing or queued" do
-        queued_status = ['processing', 'queued']
         queued = Video.queued_encodings 
-        queued.each{|q| queued_status.should be_include(q.status)}
+        queued.each{|q| ['processing', 'queued'].should be_include(q.status)}
       end
     end
     
     describe "outstanding_notifications" do
-      it "should return success/error videos, but notification is not set" do
-        create_video(:status => 'success', :notification => 'success')
-        create_video(:status => 'error', :notification => 'error')
-        create_video(:status => 'success',:notification => '')
-        create_video(:status => 'error', :notification => '')
-        create_video(:status => 'success')
-        create_video(:status => 'error')
-        Video.outstanding_notifications.should have(4).videos
+      it "should not return videos if notification status are set" do
+        lambda { 
+          create_video(:status => 'success', :notification => 'success')
+          create_video(:status => 'error', :notification => 'error')
+        }.should_not change { Video.outstanding_notifications.size }
+      end
+      
+      it "should return videos if notification status are empty" do
+        lambda { 
+          create_video(:status => 'success',:notification => '')
+          create_video(:status => 'error', :notification => '')
+        }.should change { Video.outstanding_notifications.size }.by(2)
+      end
+
+      it "should return videos if notification status are not set" do
+        lambda { 
+          create_video(:status => 'success')
+          create_video(:status => 'error')
+        }.should change { Video.outstanding_notifications.size }.by(2)
       end
     end
 
@@ -118,8 +128,6 @@ describe Video do
         vid2 = create_video(:status => 'queued', :created_at => 1.days.ago)
         vid1 = create_video(:status => 'queued', :created_at => 2.days.ago)
         Video.next_job.should == vid1
-        vid1.destroy
-        vid2.destroy
       end
       
       it "should retun nil if there are no queued videos" do
@@ -132,19 +140,19 @@ describe Video do
     
     describe "parent_video" do
       before(:all) do
-        @parent_video_object = Video.all_originals.first
-        @parent_video_object.save
+        @parent_video = Video.all_originals.first
+        @parent_video.save
       end
 
       it "should raise error if the video itself is parent" do
-        lambda { @parent_video_object.parent_video }.should
+        lambda { @parent_video.parent_video }.should
          raise_error(RuntimeError, "Parent does not have parent")
       end
       
       it "should return parent video where parent id matches" do
-        @video.parent = @parent_video_object.id
+        @video.parent = @parent_video.id
         @video.status = 'queued'
-        @video.parent_video.should == @parent_video_object
+        @video.parent_video.should == @parent_video
       end
     end
 
