@@ -438,6 +438,9 @@ class Video < SimpleDB::Base
     http = Net::HTTP.new(uri.host, uri.port)
 
     req = Net::HTTP::Post.new(uri.path)
+    if uri.user and uri.password
+     req.basic_auth uri.user, uri.password
+    end
     req.form_data = params
     response = http.request(req)
     
