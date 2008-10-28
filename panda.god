@@ -35,7 +35,7 @@ God.watch do |w|
   w.name = "encoder"
   current_path  = "/var/local/www/panda"
   port = 4091
-  w.start = "/bin/bash -c 'cd #{current_path}; bin/merb -r bin/encoder.rb -d -p #{port} -e encoder'"
+  w.start = "/bin/bash -c 'cd #{current_path}; bin/merb -r bin/encoder.rb -d -p #{port} -e production'"
   w.stop = "/bin/bash -c 'cd #{current_path}; bin/merb -k #{port}'"
   w.pid_file = File.join(current_path, "log/merb.#{port}.pid")
   w.behavior(:clean_pid_file)
@@ -55,7 +55,7 @@ God.watch do |w|
   w.name = "notifier"
   current_path  = "/var/local/www/panda"
   port = 6001
-  w.start = "/bin/bash -c 'cd #{current_path}; bin/merb -r bin/notifier.rb -d -p #{port} -e notifier'"
+  w.start = "/bin/bash -c 'cd #{current_path}; bin/merb -r bin/notifier.rb -d -p #{port} -e production'"
   w.stop = "/bin/bash -c 'cd #{current_path}; bin/merb -k #{port}'"
   w.pid_file = File.join(current_path, "log/merb.#{port}.pid")
   w.behavior(:clean_pid_file)
