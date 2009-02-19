@@ -58,9 +58,9 @@ module Panda
         check_present(:upload_redirect_url)
         check_present(:state_update_url)
         
-        %w{sdb_domain}.each do |d|
-          check_present(d.to_sym)
-        end
+        # %w{}.each do |d|
+        #   check_present(d.to_sym)
+        # end
       end
       
       def check_present(option, message = nil)

@@ -26,7 +26,7 @@ Install dependencies
 
 First install the following gems
 
-    sudo gem install merb merb_helpers activesupport RubyInline amazon_sdb aws-s3 uuid flvtool2
+    sudo gem install merb merb_helpers activesupport RubyInline aws-s3 uuid flvtool2
 
 Next you'll need to install libgd, ffmpeg, and the rvideo gem:
 
@@ -91,7 +91,7 @@ If you're developing on Mac OS X, you can save some time by [grabbing ffmpeg out
 
 Grab Panda
 ----------
-Get the latest (at this moment, our code is compatible with 0.9.7)
+Get the latest
 
     git clone git://github.com/newbamboo/panda.git
 
