@@ -20,7 +20,7 @@ Panda::Config.use do |p|
   # Local storage. Public should be accessible from the internet
   # ============================================================
   
-  p[:private_tmp_path]      = "/var/tmp/videos"
+  p[:private_tmp_path]      = "/mnt/www/panda/videos"
   # Defaults to tmp within the Panda public directory. Optionally configurable
   # p[:public_tmp_path]       = "/var/www/images"
   # p[:public_tmp_url]        = "http://images.app.com"
@@ -30,6 +30,8 @@ Panda::Config.use do |p|
   # ================================================
   
   # For S3 storage:
+  p[:access_key_id]         = "AWS_ACCESS_KEY"
+  p[:secret_access_key]     = "AWS_SECRET_ACCESS_KEY"
   p[:videos_store]          = :s3
   p[:videos_domain]         = "s3.amazonaws.com/S3_BUCKET"
   p[:s3_videos_bucket]      = "S3_BUCKET"
@@ -38,19 +40,6 @@ Panda::Config.use do |p|
   # p[:videos_store]          = :filesystem
   # p[:videos_domain]         = "localhost:4000/store"
   # p[:public_videos_dir]     = Merb.root / "public" / "store"
-  
-  # ================================================
-  # AWS Details
-  # ================================================
-  
-  # For S3 and SimpleDB:
-  p[:access_key_id]         = "AWS_ACCESS_KEY"
-  p[:secret_access_key]     = "AWS_SECRET_ACCESS_KEY"
-  
-  # SimpleDB domains (you need only change these if you have multiple Panda 
-  # instances using your AWS account):
-  
-  p[:sdb_domain]            = "panda"
   
   # ================================================
   # Thumbnail

@@ -14,9 +14,11 @@ dependency "merb_datamapper", merb_gems_version
 dependency 'uuid', '2.0.1'
 dependency 'activesupport', '2.1.1'
 dependency 'rvideo'
-dependency 'aws-s3', '0.5.1' do
-  require 'aws/s3'
-end
+# dependency 'aws-s3', '0.5.1' do
+#   require 'aws/s3'
+# end
 
 # Dependencies in lib - not autoloaded in time so require them explicitly
 require 'local_store'
+require 'abstract_store'
+require 'file_store'
