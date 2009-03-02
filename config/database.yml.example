@@ -14,14 +14,20 @@
   :adapter: mysql
   :database: panda_test
 
-:production:
-  <<: *defaults
+:production: &prod
   :adapter: mysql
   :database: panda_production
   :username: root
   :password: 
+  :host: localhost
+  :encoding: utf8
   :socket: /var/run/mysqld/mysqld.sock
 
+:encoder:
+  <<: *prod
+
+:notifier:
+  <<: *prod
 
 # :development: &defaults
 #   :adapter: simpledb
