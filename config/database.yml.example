@@ -6,7 +6,6 @@
   :username: root
   :password: 
   :host: localhost
-  :socket: 
   :encoding: utf8
 
 :test:
@@ -21,7 +20,6 @@
   :password: 
   :host: localhost
   :encoding: utf8
-  :socket: /var/run/mysqld/mysqld.sock
 
 :encoder:
   <<: *prod

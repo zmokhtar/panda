@@ -1,0 +1,16 @@
+:production: &prod
+  :adapter: mysql
+  :database: panda
+  :username: root
+  :password: 
+  :host: localhost
+  :encoding: utf8
+
+:encoder:
+  <<: *prod
+
+:notifier:
+  <<: *prod
+  
+:rake:
+  <<: *prod

@@ -15,7 +15,7 @@ dependency "do_mysql", "0.9.11"
 # dependency 'RubyInline', '3.8.1'
 dependency 'uuid', '2.0.1'
 dependency 'activesupport', '2.1.1'
-dependency 'rvideo', '0.9.3'
+require 'rvideo'
 # dependency 'aws-s3', '0.5.1' do
 #   require 'aws/s3'
 # end

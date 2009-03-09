@@ -24,6 +24,6 @@ class Profile
   rescue
     # Datamapper should raise a consistent error if the domain/table does not 
     # exist. It doesn't. So rescue everything.
-    Merb.logger.info "PANDA WARNING: Profile domain/table does not exist. Please check that you have created all the required domains/tables (see the getting started guide)."
+    Merb.logger.info "PANDA WARNING: Profile SimpleDB domain or MySQL table does not exist. Please check that you have created all the required domains/tables (see the getting started guide for more details)."
   end
 end
