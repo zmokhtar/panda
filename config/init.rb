@@ -21,19 +21,12 @@ end
 Merb::BootLoader.before_app_loads do
   # This will get executed after dependencies have been loaded but before your app's classes have loaded.
   
-  # Load Panda config
-  require "config" / "panda_init"
-  
-  # Check panda config
-  Panda::Config.check
   
   require 'data_mapper/types/uuid_index'
 end
  
 Merb::BootLoader.after_app_loads do
   # This will get executed after your app's classes have been loaded.
-  
-  # require "config" / "aws"
   
   unless Merb.environment =~ /test/
     require "config" / "mailer" if Panda::Config[:notification_email]

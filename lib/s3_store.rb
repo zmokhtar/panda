@@ -1,5 +1,3 @@
-require 'aws/s3'
-
 class S3VideoObject < AWS::S3::S3Object
   set_current_bucket_to Panda::Config[:s3_videos_bucket]
 end
