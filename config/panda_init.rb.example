@@ -20,7 +20,7 @@ Panda::Config.use do |p|
   # Local storage. Public should be accessible from the internet
   # ============================================================
   
-  p[:private_tmp_path]      = Merb.root / "tmp"
+  p[:private_tmp_path]      = Merb.root / "tmp" / "videos"
   # Defaults to tmp within the Panda public directory. Optionally configurable
   # p[:public_tmp_path]       = "/var/www/images"
   # p[:public_tmp_url]        = "http://images.app.com"

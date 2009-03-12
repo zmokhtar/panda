@@ -44,7 +44,8 @@ namespace :deploy do
   
   task :setup_symlinks do
     # Symlink video store dir to /mnt so we make use of the space there
-    run "ln -nsf /mnt/panda/tmp #{current_path}/tmp"
+    run "ln -nsf /mnt/panda/tmp #{current_path}/tmp/videos"
+    run "ln -nsf /mnt/panda/store #{current_path}/public/store"
     # Symlink config files
     ['database.yml', 'panda_init.rb', 'mailer.rb'].each do |f|
       run "ln -nsf #{shared_path}/system/#{f} #{current_path}/config/#{f}"
