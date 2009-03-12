@@ -17,8 +17,8 @@ dependency "do_mysql", "0.9.11"
 # end
 dependency 'uuid', '2.0.1'
 dependency 'activesupport', '2.1.1'
+dependency 'rvideo' # Gem from github: gem install greatseth-rvideo -s http://gems.github.com
 
-require 'rvideo'
 require 'aws/s3'
 
 # Load Panda config
