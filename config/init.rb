@@ -20,7 +20,18 @@ end
  
 Merb::BootLoader.before_app_loads do
   # This will get executed after dependencies have been loaded but before your app's classes have loaded.
-  
+  # Load Panda config
+  require "config" / "panda_init"
+
+  # Check panda config
+  Panda::Config.check
+
+  # Dependencies in lib - not autoloaded in time so require them explicitly
+  require 'abstract_store'
+  require 'file_store'
+  require 's3_store'
+
+  require 'local_store'
   
   require 'data_mapper/types/uuid_index'
 end

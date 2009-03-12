@@ -12,24 +12,8 @@ dependency 'dm-timestamps', dm_gems_version
 dependency "merb_datamapper", merb_gems_version
 dependency "do_mysql", "0.9.11"
 
-# dependency 'RubyInline', '3.8.1' do
-#   require 'inline'
-# end
+dependency 'RubyInline', :require_as => 'inline'
 dependency 'uuid', '2.0.1'
 dependency 'activesupport', '2.1.1'
-dependency 'rvideo' # Gem from github: gem install greatseth-rvideo -s http://gems.github.com
-
-require 'aws/s3'
-
-# Load Panda config
-require "config" / "panda_init"
-
-# Check panda config
-Panda::Config.check
-
-# Dependencies in lib - not autoloaded in time so require them explicitly
-require 'abstract_store'
-require 'file_store'
-require 's3_store'
-
-require 'local_store'
+dependency 'greatseth-rvideo', :require_as => 'rvideo' # Gem from github: gem install greatseth-rvideo -s http://gems.github.com
+dependency 'aws-s3', :require_as => 'aws/s3'
