@@ -10,6 +10,7 @@ class Application < Merb::Controller
 private
 
   def require_login
+    provides :html, :xml, :yaml
     case (params[:format] || "html")
     when "html"
       begin
@@ -20,7 +21,14 @@ private
       end
       throw :halt, redirect("/login") unless @user
     when "xml", "yaml"
-      throw :halt, render('<error>Invalid account_key</error>', :status => 401) unless params[:account_key] == Panda::Config[:api_key]
+      response_hash = {:error => "InvalidAccountKey"}
+      response_string = case params[:format]
+                        when "xml"
+                          response_hash.to_simple_xml
+                        when "yaml"
+                          response_hash.to_yaml
+                        end
+      throw :halt, render(response_string, :status => 401) unless params[:account_key] == Panda::Config[:api_key]
     else
       throw :halt, render('', :status => 401)
     end
