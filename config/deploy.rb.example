@@ -38,7 +38,11 @@ after "deploy:symlink", "deploy:setup_symlinks"
 
 # Phusion Passenger does auto restart when the symlink changes
 namespace :deploy do
-  task :restart do; end
+  # Phusion Passenger also does auto restart when the symlink changes
+  task :restart, :roles => :app do
+    run "touch #{current_path}/tmp/restart.txt"
+  end
+  
   task :start do; end
   task :stop do; end
   
