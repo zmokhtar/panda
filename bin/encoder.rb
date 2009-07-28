@@ -3,10 +3,16 @@
 Merb.logger.info 'Encoder awake!'
 
 loop do
-  sleep 3
+  # Randomize the sleep so that the servers don't all wake up at the same time
+  sleep rand(8)
   Merb.logger.debug "Checking for messages... #{Time.now}"
   if video = Video.next_job
     begin
+
+      # Mark the video as processing so other instances don't grab the same video
+      video.status = "processing"
+      video.save
+
       # Wait for stuff to show up on S3 and SimpleDB
       sleep 10
       video.encode
