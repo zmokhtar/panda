@@ -8,13 +8,6 @@ loop do
   Merb.logger.debug "Checking for messages... #{Time.now}"
   if video = Video.next_job
     begin
-
-      # Mark the video as processing so other instances don't grab the same video
-      video.status = "processing"
-      video.save
-
-      # Wait for stuff to show up on S3 and SimpleDB
-      sleep 10
       video.encode
     rescue  
       begin

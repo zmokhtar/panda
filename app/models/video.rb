@@ -606,7 +606,10 @@ RESPONSE
     raise "You can only encode encodings" unless self.encoding?
     self.status = "processing"
     self.save
-    
+
+    # Wait for stuff to show up on S3 and SimpleDB
+    sleep 10
+  
     begun_encoding = Time.now
     
     begin
